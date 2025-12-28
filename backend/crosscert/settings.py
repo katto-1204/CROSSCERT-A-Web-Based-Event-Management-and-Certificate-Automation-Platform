@@ -185,10 +185,12 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
 APPEND_SLASH = False # Prevents redirects that break CORS preflights
 
 # CSRF Configuration for CORS
+# Trusting both your main domain and the Vercel preview domain
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
-    FRONTEND_BASE_URL,
+    'https://crosscert.vercel.app',
+    'https://crosscert-kat-arnados-projects.vercel.app',
     'https://crosscert-production.up.railway.app',
 ]
 
@@ -201,5 +203,8 @@ SESSION_COOKIE_SAMESITE = 'None'
 
 # Production Proxy Settings
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SECURE_SSL_REDIRECT = False # Railway handles the redirect at the edge
+SECURE_SSL_REDIRECT = False 
+SECURE_HSTS_SECONDS = 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+SECURE_HSTS_PRELOAD = False
 
