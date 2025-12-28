@@ -175,11 +175,14 @@ REST_FRAMEWORK = {
 
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
+FRONTEND_BASE_URL = os.getenv('FRONTEND_BASE_URL', os.getenv('FRONTEND_URL', 'https://crosscert.vercel.app')).rstrip('/')
 
 from corsheaders.defaults import default_headers
 CORS_ALLOW_HEADERS = list(default_headers) + [
     'X-CSRFToken',
 ]
+
+APPEND_SLASH = False # Prevents redirects that break CORS preflights
 
 # CSRF Configuration for CORS
 CSRF_TRUSTED_ORIGINS = [
