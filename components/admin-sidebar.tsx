@@ -32,7 +32,7 @@ export function AdminSidebar() {
     { icon: LayoutDashboard, label: 'Dashboard', href: '/admin/dashboard', color: 'text-red-500' },
     { icon: Calendar, label: 'Events', href: '/admin/events', color: 'text-orange-500' },
     { icon: Users, label: 'Participants', href: '/admin/participants', color: 'text-blue-500' },
-    { icon: QrCode, label: 'Check-In', href: '/admin/checkin', color: 'text-green-500' },
+    { icon: QrCode, label: 'Attendance', href: '/admin/checkin', color: 'text-green-500' },
     { icon: Star, label: 'Evaluations', href: '/admin/evaluations', color: 'text-yellow-500' },
     { icon: FileText, label: 'Certificates', href: '/admin/certificates', color: 'text-purple-500' },
     { icon: BarChart3, label: 'Insights', href: '/admin/insights', color: 'text-pink-500' },
