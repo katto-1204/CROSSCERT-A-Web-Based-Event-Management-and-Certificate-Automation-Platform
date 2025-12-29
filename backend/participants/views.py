@@ -91,7 +91,7 @@ class ParticipantViewSet(viewsets.ViewSet):
 
         User = get_user_model()
         if User.objects.filter(email=email).exists():
-            return Response({'detail': 'User with this email already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'You are already registered with this email. Please sign in instead.'}, status=status.HTTP_400_BAD_REQUEST)
 
         first_name, *rest = full_name.split(' ')
         last_name = ' '.join(rest)

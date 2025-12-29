@@ -126,8 +126,15 @@ export default function SignUp() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        console.error('[Signup] Registration failed:', data)
-        setError(data.detail || data.error || 'Unable to create account.')
+        const errorMessage = data.detail || data.error || 'Unable to create account.'
+
+        if (errorMessage.toLowerCase().includes('already registered')) {
+          console.log('[Signup] User already exists, suggesting sign-in.')
+        } else {
+          console.error('[Signup] Registration failed:', data)
+        }
+
+        setError(errorMessage)
         setIsLoading(false)
         return
       }

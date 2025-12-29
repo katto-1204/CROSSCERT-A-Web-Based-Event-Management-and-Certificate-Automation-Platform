@@ -24,7 +24,6 @@ export const API_ROUTES = {
   registrations: '/api/registrations',
   checkIns: '/api/check-ins',
   evaluations: '/api/evaluations',
-  evaluations: '/api/evaluations',
   certificates: '/api/certificates',
   notifications: '/api/notifications',
 
@@ -49,11 +48,26 @@ export function getApiUrl(route: string): string {
  * Admin API helper functions
  */
 export const adminApi = {
-  events: () => getApiUrl(API_ROUTES.admin.events),
-  participants: () => getApiUrl(API_ROUTES.admin.participants),
-  checkIns: () => getApiUrl(API_ROUTES.admin.checkIns),
-  evaluations: () => getApiUrl(API_ROUTES.admin.evaluations),
-  certificates: () => getApiUrl(API_ROUTES.admin.certificates),
+  events: () => {
+    const url = getApiUrl(API_ROUTES.admin.events)
+    return url.endsWith('/') ? url : `${url}/`
+  },
+  participants: () => {
+    const url = getApiUrl(API_ROUTES.admin.participants)
+    return url.endsWith('/') ? url : `${url}/`
+  },
+  checkIns: () => {
+    const url = getApiUrl(API_ROUTES.admin.checkIns)
+    return url.endsWith('/') ? url : `${url}/`
+  },
+  evaluations: () => {
+    const url = getApiUrl(API_ROUTES.admin.evaluations)
+    return url.endsWith('/') ? url : `${url}/`
+  },
+  certificates: () => {
+    const url = getApiUrl(API_ROUTES.admin.certificates)
+    return url.endsWith('/') ? url : `${url}/`
+  },
 
   // Helper to get a specific event by ID
   eventById: (id: string | number) => `${getApiUrl(API_ROUTES.admin.events)}/${id}/`,

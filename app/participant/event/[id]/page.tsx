@@ -244,14 +244,15 @@ export default function ParticipantEventDetailPage() {
         setShowSuccessModal(true)
       } else {
         const err = await res.json()
-        if (String(err?.detail).includes('already registered')) {
+        const errorDetail = String(err?.detail || err?.non_field_errors?.[0] || 'Registration failed.')
+
+        if (errorDetail.toLowerCase().includes('already registered')) {
           setRegistrationStatus('registered')
           updateButtonLabel('registered')
           setShowSuccessModal(true)
-          // If it was already registered but we didn't capture data initially, we might need to re-fetch or use what we have.
-          // Usually the GET loop above handles initial state.
+          console.log('[Registration] User already registered for this event.')
         } else {
-          setErrorMessage('Registration failed. Please try again.')
+          setErrorMessage(errorDetail)
         }
       }
     } catch (err) {

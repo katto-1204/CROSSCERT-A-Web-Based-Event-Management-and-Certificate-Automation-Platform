@@ -8,11 +8,34 @@ from django.contrib.auth.models import User
 
 class EvaluationSerializer(serializers.ModelSerializer):
     """Serializer for Evaluation model."""
+    event_title = serializers.SerializerMethodField()
+    event_id = serializers.SerializerMethodField()
+    participant_name = serializers.SerializerMethodField()
+
     class Meta:
         model = Evaluation
         fields = ['id', 'registration', 'name', 'email', 'year_level', 
                   'content_rating', 'instructor_rating', 'facilities_rating', 
-                  'overall_rating', 'feedback', 'submitted_at']
+                  'overall_rating', 'feedback', 'submitted_at',
+                  'event_title', 'event_id', 'participant_name']
+
+    def get_event_title(self, obj):
+        try:
+            return obj.registration.event.title
+        except:
+            return "Unknown Event"
+
+    def get_event_id(self, obj):
+        try:
+            return obj.registration.event.id
+        except:
+            return None
+
+    def get_participant_name(self, obj):
+        try:
+            return f"{obj.registration.first_name} {obj.registration.last_name}"
+        except:
+            return obj.name or "Unknown Participant"
 
 
 class ParticipantSerializer(serializers.Serializer):

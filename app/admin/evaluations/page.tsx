@@ -49,8 +49,11 @@ export default function AdminEvaluations() {
           apiCall.get(api.evaluations()),
         ])
 
-        if (!eventsRes.ok || !evaluationsRes.ok) {
-          throw new Error('Unable to load evaluations data.')
+        if (!eventsRes.ok) {
+          throw new Error(`Unable to load events data (Status: ${eventsRes.status})`)
+        }
+        if (!evaluationsRes.ok) {
+          throw new Error(`Unable to load evaluations data (Status: ${evaluationsRes.status})`)
         }
 
         const eventsData = await eventsRes.json()
@@ -64,38 +67,10 @@ export default function AdminEvaluations() {
           ? evaluationsData
           : (evaluationsData.results || evaluationsData.data || [])
 
-        const enrichedEvaluations = await Promise.all(
-          evaluationsList.map(async (evaluation) => {
-            try {
-              const regRes = await apiCall.get(`${api.registrations()}${evaluation.registration}/`)
-              if (regRes.ok) {
-                const reg = await regRes.json()
-                const eventRes = await apiCall.get(api.eventById(reg.event))
-                if (eventRes.ok) {
-                  const event = await eventRes.json()
-                  return {
-                    ...evaluation,
-                    event_title: event.title || event.name || 'Untitled Event',
-                    event_id: event.id,
-                    participant_name: `${reg.first_name || ''} ${reg.last_name || ''}`.trim() || 'Unknown Participant',
-                  }
-                }
-              }
-            } catch (err) {
-              console.warn(`Could not fetch details for evaluation ${evaluation.id}:`, err)
-            }
-            // Return with default values if fetch failed
-            return {
-              ...evaluation,
-              event_title: evaluation.event_title || 'Unknown Event',
-              participant_name: evaluation.participant_name || evaluation.name || 'Unknown Participant',
-            }
-          })
-        )
-
         setEvents(eventsList)
-        setEvaluations(enrichedEvaluations)
+        setEvaluations(evaluationsList)
       } catch (err: any) {
+        console.error('[AdminEvaluations] Error loading data:', err)
         setError(err.message || 'Unable to load evaluations.')
       } finally {
         setLoading(false)

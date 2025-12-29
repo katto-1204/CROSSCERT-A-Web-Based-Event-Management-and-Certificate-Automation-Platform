@@ -108,9 +108,15 @@ class EventRegistrationSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         """
-        Check that the event is accepting registrations.
+        Check that the event is accepting registrations and user is not already registered.
         """
         event = data['event']
+        email = data.get('email')
+
+        # Check existing registration
+        if EventRegistration.objects.filter(event=event, email=email).exists():
+            raise serializers.ValidationError("You are already registered for this event.")
+
         if event.status == 'paused':
             raise serializers.ValidationError("Registration is currently paused for this event.")
         if event.status == 'draft':
