@@ -2,6 +2,7 @@
 Serializers for Event app.
 """
 from rest_framework import serializers
+from rest_framework.validators import UniqueTogetherValidator
 from .models import Event, EventRegistration, CheckIn, Notification
 
 
@@ -105,17 +106,19 @@ class EventRegistrationSerializer(serializers.ModelSerializer):
             'has_evaluated',
             'is_checked_out',
         ]
+        validators = [
+            UniqueTogetherValidator(
+                queryset=EventRegistration.objects.all(),
+                fields=['event', 'email'],
+                message="You are already registered for this event."
+            )
+        ]
 
     def validate(self, data):
         """
-        Check that the event is accepting registrations and user is not already registered.
+        Check that the event is accepting registrations.
         """
         event = data['event']
-        email = data.get('email')
-
-        # Check existing registration
-        if EventRegistration.objects.filter(event=event, email=email).exists():
-            raise serializers.ValidationError("You are already registered for this event.")
 
         if event.status == 'paused':
             raise serializers.ValidationError("Registration is currently paused for this event.")

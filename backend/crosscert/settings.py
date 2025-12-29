@@ -14,7 +14,7 @@ except Exception:
     pass
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / '.env')
+load_dotenv(BASE_DIR / '.env', override=True)
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-your-secret-key-change-in-production')
 
@@ -75,39 +75,30 @@ TEMPLATES = [
 WSGI_APPLICATION = 'crosscert.wsgi.application'
 
 
-DATABASES = {
-# NEON DB (Commented out)
-    # 'default': {
-    #     'ENGINE': 'django.db.backends.postgresql',
-    #     'NAME': 'neondb',
-    #     'USER': 'neondb_owner',
-    #     'PASSWORD': 'npg_eTZK5ghob4zC',
-    #     'HOST': 'ep-round-surf-a1af8ypj-pooler.ap-southeast-1.aws.neon.tech',
-    #     'PORT': '5432',
-    #     # Optimization: Keep connection open for 10 minutes to reduce SSL handshake overhead
-    #     'CONN_MAX_AGE': 600,
-    #     'OPTIONS': {
-    #         'sslmode': 'require',
-    #         'channel_binding': 'require',
-    #     },
-    # }
-
-    # SUPABASE DB
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('SUPABASE_DB_NAME', 'postgres'),
-        'USER': os.getenv('SUPABASE_DB_USER', 'postgres'),
-        'PASSWORD': os.getenv('SUPABASE_DB_PASSWORD'),
-        'HOST': os.getenv('SUPABASE_DB_HOST'),
-        'PORT': os.getenv('SUPABASE_DB_PORT', '6543'), # Default to 6543 for pooling
-        # Supabase Transaction Pooler (Port 6543) requires disabling persistent connections
-        # CONN_MAX_AGE must be 0 to allow the pooler to manage connections efficiently
-        'CONN_MAX_AGE': 0, 
-        'OPTIONS': {
-            'sslmode': 'require',
-        },
+# Database Configuration
+# We use SQLite for local development by default, and PostgreSQL/Supabase for production
+if not os.getenv('SUPABASE_DB_HOST'):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('SUPABASE_DB_NAME', 'postgres'),
+            'USER': os.getenv('SUPABASE_DB_USER', 'postgres'),
+            'PASSWORD': os.getenv('SUPABASE_DB_PASSWORD'),
+            'HOST': os.getenv('SUPABASE_DB_HOST'),
+            'PORT': os.getenv('SUPABASE_DB_PORT', '6543'),
+            'CONN_MAX_AGE': 0,
+            'OPTIONS': {
+                'sslmode': 'require',
+            },
+        }
+    }
 
 # Default primary key field type (Django 3.2+)
 # Using BigAutoField for better scalability and to avoid warnings
