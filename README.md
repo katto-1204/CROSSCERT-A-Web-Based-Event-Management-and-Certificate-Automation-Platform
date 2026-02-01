@@ -1,7 +1,5 @@
 <div align="center">
-  <img src="public/readme-banner.png" alt="CROSSCERT Professional Banner" width="100%" style="border-radius: 10px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-
-  <img src="https://hcdc.edu.ph/wp-content/uploads/2021/04/hcdc-logo.png" alt="HCDC Logo" width="60" style="margin-bottom: 10px;">
+  <img src="https://hcdc.edu.ph/wp-content/uploads/2021/04/hcdc-logo.png" alt="HCDC Logo" width="80" style="margin-bottom: 20px;">
 
   # CROSSCERT
   ### The Next-Generation Event Management & Automated Certification Platform
