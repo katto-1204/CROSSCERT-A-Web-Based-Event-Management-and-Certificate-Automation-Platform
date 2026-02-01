@@ -1,139 +1,80 @@
-<div align="center">
-  <img src="https://hcdc.edu.ph/wp-content/uploads/2021/04/hcdc-logo.png" alt="HCDC Logo" width="80" style="margin-bottom: 10px;">
-  
-  # 🏆 CROSSCERT 
-  ### **The Next-Generation Event Management & Automated Certification Platform**
-  
-  [![Next.js](https://img.shields.io/badge/Next.js-16+-black?logo=next.js&logoColor=white)](https://nextjs.org/)
-  [![Django](https://img.shields.io/badge/Django-6.0-092e20?logo=django&logoColor=white)](https://www.djangoproject.com/)
-  [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.0-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
-  [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-  [![Radix UI](https://img.shields.io/badge/UI-Radix_%2B_Shadcn-purple?logo=radix-ui&logoColor=white)](https://ui.shadcn.com/)
-  [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
-
-  ---
-
-  *A high-fidelity web ecosystem designed for the **Office of the Vice President for Academic Affairs (VPAA)** to revolutionize institutional seminars, workshops, and assembly logistics through intelligent automation.*
-
-</div>
-
-## 🌟 The Vision
-**CROSSCERT** is more than just an event manager; it's a bridge between administrative efficiency and participant experience. By eliminating manual certification hurdles and paper-based attendance, CROSSCERT provides a seamless, high-performance environment for both institutional administrators and participants at the **Holy Cross of Davao College**.
+# CROSSCERT
+**The Next-Generation Event Management & Automated Certification Platform**
 
 ---
 
-## 🚀 Core Functionalities
+**CROSSCERT** is a high-fidelity web ecosystem designed for the **Office of the Vice President for Academic Affairs (VPAA)**. It revolutionizes institutional seminars, workshops, and assembly logistics through intelligent automation, bridging administrative efficiency with participant experience.
 
-### 1. 🛠️ Advanced Event Lifecycle Management
-*   **Manual Operational Control**: Events are managed through distinct states: `Draft` → `Scheduled` → `Live` → `Paused` → `Concluded`.
-*   **Visual Customization**: Admins can customize event branding with specialized theme engines, cover images, and departmental tagging.
-*   **Interactive Hero Sections**: Immersive, high-impact landing pages for every event featuring glassmorphism and animated countdowns.
+## The Vision
 
-### 2. 🎟️ Digital Access Pass (QR Identification)
-*   **Instant Identification**: Every registered participant receives a **Digital Access Pass** containing their unique QR ID.
-*   **Ticket Transparency**: Real-time badge updates (`NOT STARTED`, `EVENT STARTED`, `EVENT CONCLUDED`) reflect the actual operational status on the participant's device.
-*   **One-Click Registration**: Secure, cross-referenced registration ensuring only relevant students or faculty can join specific institutional events.
+CROSSCERT eliminates manual certification hurdles and paper-based attendance. It provides a seamless, high-performance environment for both institutional administrators and participants at **Holy Cross of Davao College**.
 
-### 3. 📸 Intelligent Attendance Logistics
-*   **High-Speed Check-In/Out**: Admin-exclusive QR scanner capable of handling massive participant inflow with sub-second processing.
-*   **Smart Validations**: Prevents double check-ins and ensures participants follow the operational flow (Check-in → Presence → Check-out).
-*   **Feedback Integration**: Seamlessly links physical attendance to post-event evaluations.
+## Core Functionalities
 
-### 4. 🎓 Automated Intelligence & Certification
-*   **The "Evaluate-to-Earn" Flow**: Certificates are only generated once a participant completes the required evaluation form.
-*   **PDF Core Engine**: High-fidelity certificate generation using a proportional scaling factor that adapts to high-resolution templates.
-*   **Proactive Delivery**: Automated SMTP integration delivers certificates directly to the participant's inbox and stores them in a dedicated **Certificate Portfolio** tab.
+### 1. Advanced Event Lifecycle Management
+*   **Operational Control**: Events are managed through distinct states: `Draft`, `Scheduled`, `Live`, `Paused`, `Concluded`.
+*   **Visual Customization**: Admins can customize event branding with specialized theme engines and departmental tagging.
+*   **Interactive Landing Pages**: High-impact landing pages for every event featuring modern design elements.
 
-### 5. 📊 Real-Time Analytics & Insights
-*   **Live Metrics**: Instant data on attendance rates, total registrations, and certificate issuance stats.
-*   **Departmental Breakdowns**: Intelligent charts visualizing engagement by college (CCJE, CET, STE, SBME, etc.).
+### 2. Digital Access Pass (QR Identification)
+*   **Instant Identification**: Every registered participant receives a Digital Access Pass containing their unique QR ID.
+*   **Real-time Updates**: Badge status reflects the actual operational status on the participant's device.
+*   **Secure Registration**: Cross-referenced registration ensuring only relevant students or faculty can join specific institutional events.
 
----
+### 3. Intelligent Attendance Logistics
+*   **High-Speed Processing**: Admin-exclusive QR scanner capable of handling massive participant inflow efficiently.
+*   **Smart Validations**: Prevents double check-ins and ensures participants follow the operational flow (Check-in, Presence, Check-out).
+*   **Feedback Integration**: Links physical attendance to post-event evaluations.
 
-## � Project Architecture
+### 4. Automated Intelligence & Certification
+*   **Evaluation-Based Issuance**: Certificates are generated only after a participant completes the required evaluation form.
+*   **High-Fidelity Generation**: PDF engine with proportional scaling that adapts to high-resolution templates.
+*   **Automated Delivery**: Certificates are delivered via email and stored in a dedicated Certificate Portfolio.
 
-### **Codebase Mapping**
+### 5. Real-Time Analytics
+*   **Live Metrics**: Data on attendance rates, total registrations, and certificate issuance stats.
+*   **Departmental Insights**: Visualization of engagement by different college departments.
 
-#### **Frontend (Next.js)**
-```text
-CROSSCERT-VPAA/
-├── app/                  # App Router: Pages & API Routes
-│   ├── admin/            # Administrative Dashboard & Tools
-│   ├── auth/             # Authentication & User Onboarding
-│   └── participant/      # Participant-specific Views (Tickets, Certs)
-├── components/           # Reusable UI Components
-│   └── ui/               # Radix-based low-level components (Shadcn)
-├── lib/                  # Shared Business Logic & Utility Functions
-└── public/               # Static Assets (Logos, Templates)
-```
+## Project Architecture
 
-#### **Backend (Django)**
-```text
-backend/
-├── certificates/         # PDF Generation Logic & Mailers
-├── events/               # Event Lifecycle & Status Management
-├── participants/         # Registration & Attendance DB
-└── crosscert/            # Central Project Config & Security
-```
+### Tech Stack
 
----
+*   **Frontend**: Next.js, Tailwind CSS, Radix UI, TypeScript
+*   **Backend**: Django, Python
+*   **Database**: SQLite (Development), PostgreSQL (Production intended)
+*   **Tools**: ReportLab (PDF Generation)
 
-## 🛠️ Technical Deep Dive
+### Codebase Structure
 
-### **The Architecture (High-Level)**
-```mermaid
-graph TD
-    P[Participant] -->|Registers| FE[Next.js Frontend]
-    FE -->|API Request| BE[Django Backend]
-    BE -->|Triggers| QR[QR Generator]
-    BE -->|Saves| DB[(Database)]
-    A[Admin] -->|Scans QR| SCAN[Check-in System]
-    SCAN -->|Updates Attendance| DB
-    DB -->|Evaluated| CERT[ReportLab PDF Engine]
-    CERT -->|Emails| MAIL[SMTP Server]
-    MAIL -->|Delivers| P
-```
+#### Frontend (Next.js)
+*   `app/`: App Router including Admin, Auth, and Participant views.
+*   `components/`: Reusable UI components and low-level Radix implementations.
+*   `lib/`: Shared business logic and utility functions.
+*   `public/`: Static assets.
 
-### **System Operations Flow**
+#### Backend (Django)
+*   `certificates/`: PDF generation logic and mailers.
+*   `events/`: Event lifecycle and status management.
+*   `participants/`: Registration and attendance database models.
+*   `crosscert/`: Central project configuration and security settings.
 
-#### **Phase 1: Preparation**
-1. Admin creates an event and selects a **Departmental Theme**.
-2. System generates a unique registration endpoint.
-3. Participants discover the event on their personalized dashboard.
+## System Operations Flow
 
-#### **Phase 2: Execution**
-1. Participant registers and receives a **Digital Ticket**.
-2. Admin starts the event; participants' tickets turn into **Live Access Passes**.
-3. High-speed QR scanning records attendance (Check-in & Check-out).
+### Phase 1: Preparation
+1.  Admin creates an event and selects a departmental theme.
+2.  System generates a unique registration endpoint.
+3.  Participants discover the event on their dashboard.
 
-#### **Phase 3: Fulfillment**
-1. Once the event is concluded, participants access the **Evaluation Modal**.
-2. Upon submission, the **PDF Generator** stitches data into the certificate template.
-3. **Automated Mailer** dispatches the certificate to the registered email.
+### Phase 2: Execution
+1.  Participant registers and receives a Digital Ticket.
+2.  Admin starts the event; tickets update to Live Access Passes.
+3.  QR scanning records attendance.
 
----
+### Phase 3: Fulfillment
+1.  Event concludes; participants access the Evaluation Modal.
+2.  Upon submission, the system generates the certificate.
+3.  Automated mailer dispatches the certificate to the registered email.
 
-## 🎨 User Experience (UX) Standards
-*   **Adaptive Theme Engine**: System-wide support for `Light` and `Dark` modes with silky smooth transitions.
-*   **Bento-Grid layouts**: Information density handled through modern bento-style cards.
-*   **Proximity Notifications**: Department-based alert system that ensures participants never miss events relevant to their college.
-*   **Mobile-First Design**: Fully optimized for smartphones, ensuring admins can scan tickets on the move and participants can access passes instantly.
+## License
 
----
-
-## 👥 The Development Team
-**Developed by:**  
-✨ Arnado, Catherine &middot; Asakil, Norman &middot; Madriñan, Ashlee &middot; Salazar, Joey &middot; Palma, Xander 
-
-**Adviser:**  
-👨‍🏫 John Rey Silverio
-
----
-
-## 📄 License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-<div align="center">
-  <p>Built with ❤️ for <strong>HCDC - VPAA</strong></p>
-  <img src="https://raw.githubusercontent.com/shadcn-ui/ui/main/apps/www/public/apple-touch-icon.png" alt="CrossCert" width="40">
-</div>
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
