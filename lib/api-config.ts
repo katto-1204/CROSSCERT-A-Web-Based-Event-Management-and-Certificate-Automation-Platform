@@ -17,6 +17,9 @@ export const API_ROUTES = {
     logout: '/api/auth/logout/',
     csrfToken: '/api/auth/csrf-token/',
     me: '/api/auth/me/',
+    forgotPassword: '/api/auth/forgot-password/',
+    verifyOtp: '/api/auth/verify-otp/',
+    resetPassword: '/api/auth/reset-password/',
   },
 
   // General API routes
@@ -141,6 +144,9 @@ export const authApi = {
   logout: () => getApiUrl(API_ROUTES.auth.logout),
   csrfToken: () => getApiUrl(API_ROUTES.auth.csrfToken),
   me: () => getApiUrl(API_ROUTES.auth.me),
+  forgotPassword: () => getApiUrl(API_ROUTES.auth.forgotPassword),
+  verifyOtp: () => getApiUrl(API_ROUTES.auth.verifyOtp),
+  resetPassword: () => getApiUrl(API_ROUTES.auth.resetPassword),
 }
 
 /**

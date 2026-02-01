@@ -197,9 +197,9 @@ export default function SignIn() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password" className="text-foreground font-medium">Password</Label>
-                  <a href="#" className="text-sm font-medium text-primary hover:text-primary/80 transition-colors">
+                  <Link href="/auth/forgot-password" className="text-sm font-medium text-primary hover:text-primary/80 transition-colors">
                     Forgot password?
-                  </a>
+                  </Link>
                 </div>
                 <div className="relative group">
                   <Lock className="absolute left-3 top-3 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />

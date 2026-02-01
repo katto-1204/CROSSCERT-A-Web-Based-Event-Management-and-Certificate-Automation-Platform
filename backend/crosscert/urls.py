@@ -8,7 +8,7 @@ from rest_framework.routers import DefaultRouter
 from events.views import EventViewSet, EventRegistrationViewSet, CheckInViewSet, NotificationViewSet
 from participants.views import ParticipantViewSet, EvaluationViewSet
 from certificates.views import CertificateViewSet, QRCodeViewSet
-from auth_endpoints import login_endpoint, logout_endpoint, csrf_token_endpoint, current_user_endpoint
+from auth_endpoints import login_endpoint, logout_endpoint, csrf_token_endpoint, current_user_endpoint, forgot_password_endpoint, verify_otp_endpoint, reset_password_endpoint
 
 # General API router for public/participant endpoints
 api_router = DefaultRouter()
@@ -36,6 +36,9 @@ urlpatterns = [
     path('api/auth/logout/', logout_endpoint, name='api_logout'),
     path('api/auth/csrf-token/', csrf_token_endpoint, name='api_csrf_token'),
     path('api/auth/me/', current_user_endpoint, name='api_current_user'),
+    path('api/auth/forgot-password/', forgot_password_endpoint, name='api_forgot_password'),
+    path('api/auth/verify-otp/', verify_otp_endpoint, name='api_verify_otp'),
+    path('api/auth/reset-password/', reset_password_endpoint, name='api_reset_password'),
 
     # Also accept admin-prefixed versions in case frontend uses relative /admin/ paths
     path('api/admin/auth/login/', login_endpoint, name='api_admin_login'),
