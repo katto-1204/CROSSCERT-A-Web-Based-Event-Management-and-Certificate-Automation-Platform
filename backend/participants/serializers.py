@@ -16,7 +16,9 @@ class EvaluationSerializer(serializers.ModelSerializer):
         model = Evaluation
         fields = ['id', 'registration', 'name', 'email', 'year_level', 
                   'content_rating', 'instructor_rating', 'facilities_rating', 
-                  'overall_rating', 'feedback', 'submitted_at',
+                  'overall_rating', 'organization_rating', 'time_management_rating',
+                  'materials_rating', 'relevance_rating', 'recommendation_rating',
+                  'feedback', 'most_liked', 'suggestions', 'image', 'submitted_at',
                   'event_title', 'event_id', 'participant_name']
 
     def get_event_title(self, obj):

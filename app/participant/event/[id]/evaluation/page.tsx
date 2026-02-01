@@ -3,7 +3,7 @@
 import { useRouter, useParams } from 'next/navigation'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Star, AlertCircle, Loader2, Check, Sparkles, Award, TrendingUp, MessageSquare, Users, MapPin } from 'lucide-react'
+import { ArrowLeft, Star, AlertCircle, Loader2, Check, Sparkles, Award, TrendingUp, MessageSquare, Users, MapPin, Clock, BookOpen, Target, ThumbsUp, Heart, Lightbulb, Camera, Image as ImageIcon, X } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
@@ -21,8 +21,16 @@ export default function ParticipantEvaluation() {
     instructorRating: 4,
     facilitiesRating: 4,
     overallRating: 4,
+    organizationRating: 4,
+    timeManagementRating: 4,
+    materialsRating: 4,
+    relevanceRating: 4,
+    recommendationRating: 4,
     yearLevel: '',
     feedback: '',
+    mostLiked: '',
+    suggestions: '',
+    image: '',
   })
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -93,7 +101,41 @@ export default function ParticipantEvaluation() {
     }
 
     fetchData()
+    fetchData()
   }, [params.id])
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) { // Increased limit to 10MB since we compress
+        alert('File size too large. Please upload an image smaller than 10MB.')
+        return
+      }
+
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        const img = new Image()
+        img.onload = () => {
+          const canvas = document.createElement('canvas')
+          const ctx = canvas.getContext('2d')
+
+          // Set canvas dimensions to match image
+          canvas.width = img.width
+          canvas.height = img.height
+
+          // Draw image to canvas
+          ctx?.drawImage(img, 0, 0)
+
+          // Compress to JPEG at 80% quality
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8)
+
+          setFormData(prev => ({ ...prev, image: compressedBase64 }))
+        }
+        img.src = event.target?.result as string
+      }
+      reader.readAsDataURL(file)
+    }
+  }
 
   const handleSubmit = async () => {
     if (!registration || !userProfile) {
@@ -119,7 +161,15 @@ export default function ParticipantEvaluation() {
         instructor_rating: formData.instructorRating,
         facilities_rating: formData.facilitiesRating,
         overall_rating: formData.overallRating,
+        organization_rating: formData.organizationRating,
+        time_management_rating: formData.timeManagementRating,
+        materials_rating: formData.materialsRating,
+        relevance_rating: formData.relevanceRating,
+        recommendation_rating: formData.recommendationRating,
         feedback: formData.feedback,
+        most_liked: formData.mostLiked,
+        suggestions: formData.suggestions,
+        image: formData.image,
       }
 
       const response = await apiCall.post(api.evaluations(), payload)
@@ -373,19 +423,139 @@ export default function ParticipantEvaluation() {
 
           <div className="h-px bg-neutral-200 dark:bg-neutral-800" />
 
-          {/* Feedback */}
-          <div className="space-y-3">
-            <Label htmlFor="feedback" className="text-base font-semibold text-neutral-900 dark:text-white flex items-center gap-2">
-              <MessageSquare className="w-5 h-5 text-red-500" />
-              Additional Feedback (Optional)
-            </Label>
-            <Textarea
-              id="feedback"
-              placeholder="Share your thoughts, suggestions, or comments about the event..."
-              value={formData.feedback}
-              onChange={(e) => setFormData(prev => ({ ...prev, feedback: e.target.value }))}
-              className="min-h-40 text-lg border-2 rounded-xl focus:ring-2 focus:ring-red-500 resize-none"
+          {/* Additional Ratings */}
+          <div className="space-y-8">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-6 h-6 text-red-500" />
+              <h3 className="text-2xl font-bold text-neutral-900 dark:text-white">Additional Feedback</h3>
+            </div>
+
+            <RatingSection
+              label="Event Organization"
+              value={formData.organizationRating}
+              onChange={(value) => setFormData(prev => ({ ...prev, organizationRating: value }))}
+              icon={Sparkles}
             />
+            <RatingSection
+              label="Time Management"
+              value={formData.timeManagementRating}
+              onChange={(value) => setFormData(prev => ({ ...prev, timeManagementRating: value }))}
+              icon={Clock}
+            />
+            <RatingSection
+              label="Materials/Handouts Quality"
+              value={formData.materialsRating}
+              onChange={(value) => setFormData(prev => ({ ...prev, materialsRating: value }))}
+              icon={BookOpen}
+            />
+            <RatingSection
+              label="Relevance to Your Field"
+              value={formData.relevanceRating}
+              onChange={(value) => setFormData(prev => ({ ...prev, relevanceRating: value }))}
+              icon={Target}
+            />
+            <RatingSection
+              label="Would Recommend This Event"
+              value={formData.recommendationRating}
+              onChange={(value) => setFormData(prev => ({ ...prev, recommendationRating: value }))}
+              icon={ThumbsUp}
+            />
+          </div>
+
+          <div className="h-px bg-neutral-200 dark:bg-neutral-800" />
+
+          {/* Text Feedback Section */}
+          <div className="space-y-6">
+            <div className="space-y-3">
+              <Label htmlFor="mostLiked" className="text-base font-semibold text-neutral-900 dark:text-white flex items-center gap-2">
+                <Heart className="w-5 h-5 text-red-500" />
+                What did you like most about the event? (Optional)
+              </Label>
+              <Textarea
+                id="mostLiked"
+                placeholder="Tell us what you enjoyed the most..."
+                value={formData.mostLiked}
+                onChange={(e) => setFormData(prev => ({ ...prev, mostLiked: e.target.value }))}
+                className="min-h-28 text-lg border-2 rounded-xl focus:ring-2 focus:ring-red-500 resize-none"
+              />
+            </div>
+
+            <div className="space-y-3">
+              <Label htmlFor="suggestions" className="text-base font-semibold text-neutral-900 dark:text-white flex items-center gap-2">
+                <Lightbulb className="w-5 h-5 text-red-500" />
+                Suggestions for Improvement (Optional)
+              </Label>
+              <Textarea
+                id="suggestions"
+                placeholder="How can we make future events better?"
+                value={formData.suggestions}
+                onChange={(e) => setFormData(prev => ({ ...prev, suggestions: e.target.value }))}
+                className="min-h-28 text-lg border-2 rounded-xl focus:ring-2 focus:ring-red-500 resize-none"
+              />
+            </div>
+
+            <div className="space-y-3">
+              <Label htmlFor="feedback" className="text-base font-semibold text-neutral-900 dark:text-white flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-red-500" />
+                Additional Comments (Optional)
+              </Label>
+              <Textarea
+                id="feedback"
+                placeholder="Any other thoughts, comments, or feedback..."
+                value={formData.feedback}
+                onChange={(e) => setFormData(prev => ({ ...prev, feedback: e.target.value }))}
+                className="min-h-28 text-lg border-2 rounded-xl focus:ring-2 focus:ring-red-500 resize-none"
+              />
+            </div>
+          </div>
+
+          <div className="h-px bg-neutral-200 dark:bg-neutral-800" />
+
+          {/* Image Upload Section */}
+          <div className="space-y-4">
+            <Label className="text-base font-semibold text-neutral-900 dark:text-white flex items-center gap-2">
+              <Camera className="w-5 h-5 text-red-500" />
+              Upload Event Photo (Optional)
+            </Label>
+
+            {!formData.image ? (
+              <div className="group relative border-2 border-dashed border-neutral-300 dark:border-neutral-700 hover:border-red-500 dark:hover:border-red-500 rounded-2xl p-8 transition-colors text-center cursor-pointer bg-neutral-50 dark:bg-neutral-800/50 hover:bg-white dark:hover:bg-neutral-800">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-12 h-12 bg-neutral-100 dark:bg-neutral-700 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <ImageIcon className="w-6 h-6 text-neutral-400 dark:text-neutral-500 group-hover:text-red-500" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-neutral-700 dark:text-neutral-300">Click to upload a photo</p>
+                    <p className="text-sm text-neutral-500">JPG, PNG up to 5MB</p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="relative rounded-2xl overflow-hidden border border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800">
+                <img
+                  src={formData.image}
+                  alt="Event"
+                  className="w-full h-64 object-cover"
+                />
+                <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setFormData(prev => ({ ...prev, image: '' }))}
+                    className="rounded-full"
+                  >
+                    <X className="w-4 h-4 mr-2" /> Remove Photo
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Submit Button */}

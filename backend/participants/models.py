@@ -23,11 +23,26 @@ class Evaluation(models.Model):
     name = models.CharField(max_length=100)
     email = models.EmailField()
     year_level = models.CharField(max_length=50)
+    
+    # Original rating fields
     content_rating = models.IntegerField(choices=[(i, i) for i in range(1, 6)])
     instructor_rating = models.IntegerField(choices=[(i, i) for i in range(1, 6)])
     facilities_rating = models.IntegerField(choices=[(i, i) for i in range(1, 6)])
     overall_rating = models.IntegerField(choices=[(i, i) for i in range(1, 6)])
+    
+    # New rating fields
+    organization_rating = models.IntegerField(choices=[(i, i) for i in range(1, 6)], default=4, help_text="How well was the event organized?")
+    time_management_rating = models.IntegerField(choices=[(i, i) for i in range(1, 6)], default=4, help_text="Was the event on schedule?")
+    materials_rating = models.IntegerField(choices=[(i, i) for i in range(1, 6)], default=4, help_text="Quality of materials/handouts")
+    relevance_rating = models.IntegerField(choices=[(i, i) for i in range(1, 6)], default=4, help_text="Relevance to your field/studies")
+    recommendation_rating = models.IntegerField(choices=[(i, i) for i in range(1, 6)], default=4, help_text="Would you recommend this event?")
+    
+    # Text feedback fields
     feedback = models.TextField(blank=True)
+    most_liked = models.TextField(blank=True, help_text="What did you like most about the event?")
+    suggestions = models.TextField(blank=True, help_text="Suggestions for improvement")
+    image = models.TextField(blank=True, null=True, help_text="Base64 encoded image")
+    
     submitted_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { ArrowLeft, Check, Star } from 'lucide-react'
+import { ArrowLeft, Check, Star, Clock, BookOpen, Target, ThumbsUp, Sparkles } from 'lucide-react'
 import { api } from '@/lib/api-config'
 
 export default function EvaluationPage() {
@@ -23,7 +23,14 @@ export default function EvaluationPage() {
     instructorRating: '4',
     facilitiesRating: '4',
     overallRating: '4',
+    organizationRating: '4',
+    timeManagementRating: '4',
+    materialsRating: '4',
+    relevanceRating: '4',
+    recommendationRating: '4',
     feedback: '',
+    mostLiked: '',
+    suggestions: '',
   })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -55,7 +62,14 @@ export default function EvaluationPage() {
         instructor_rating: parseInt(formData.instructorRating),
         facilities_rating: parseInt(formData.facilitiesRating),
         overall_rating: parseInt(formData.overallRating),
+        organization_rating: parseInt(formData.organizationRating),
+        time_management_rating: parseInt(formData.timeManagementRating),
+        materials_rating: parseInt(formData.materialsRating),
+        relevance_rating: parseInt(formData.relevanceRating),
+        recommendation_rating: parseInt(formData.recommendationRating),
         feedback: formData.feedback,
+        most_liked: formData.mostLiked,
+        suggestions: formData.suggestions,
       }
 
       const resEval = await fetch(api.evaluations(), {
@@ -192,11 +206,10 @@ export default function EvaluationPage() {
                           className="transition-transform hover:scale-110"
                         >
                           <Star
-                            className={`w-8 h-8 ${
-                              parseInt(formData[item.name as keyof typeof formData]) >= rating
+                            className={`w-8 h-8 ${parseInt(formData[item.name as keyof typeof formData]) >= rating
                                 ? 'fill-primary text-primary'
                                 : 'text-muted-foreground'
-                            }`}
+                              }`}
                           />
                         </button>
                       ))}
@@ -205,18 +218,82 @@ export default function EvaluationPage() {
                 ))}
               </div>
 
-              {/* Feedback */}
-              <div className="space-y-2">
-                <Label htmlFor="feedback" className="text-foreground">Additional Feedback</Label>
-                <Textarea
-                  id="feedback"
-                  name="feedback"
-                  value={formData.feedback}
-                  onChange={handleChange}
-                  placeholder="Share your thoughts, suggestions, or improvements..."
-                  className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground resize-none"
-                  rows={6}
-                />
+              {/* Additional Ratings */}
+              <div className="space-y-6">
+                <h2 className="text-lg font-semibold text-foreground">Additional Feedback</h2>
+
+                {[
+                  { name: 'organizationRating', label: 'Event Organization', icon: Sparkles },
+                  { name: 'timeManagementRating', label: 'Time Management', icon: Clock },
+                  { name: 'materialsRating', label: 'Materials/Handouts Quality', icon: BookOpen },
+                  { name: 'relevanceRating', label: 'Relevance to Your Field', icon: Target },
+                  { name: 'recommendationRating', label: 'Would Recommend This Event', icon: ThumbsUp },
+                ].map(item => (
+                  <div key={item.name} className="space-y-3">
+                    <Label className="text-foreground flex items-center gap-2">
+                      <item.icon className="w-4 h-4 text-primary" />
+                      {item.label}
+                    </Label>
+                    <div className="flex gap-2">
+                      {[1, 2, 3, 4, 5].map(rating => (
+                        <button
+                          key={rating}
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, [item.name]: rating.toString() }))}
+                          className="transition-transform hover:scale-110"
+                        >
+                          <Star
+                            className={`w-8 h-8 ${parseInt(formData[item.name as keyof typeof formData] as string) >= rating
+                                ? 'fill-primary text-primary'
+                                : 'text-muted-foreground'
+                              }`}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Text Feedback */}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="mostLiked" className="text-foreground">What did you like most? (Optional)</Label>
+                  <Textarea
+                    id="mostLiked"
+                    name="mostLiked"
+                    value={formData.mostLiked}
+                    onChange={handleChange}
+                    placeholder="Tell us what you enjoyed the most..."
+                    className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground resize-none"
+                    rows={3}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="suggestions" className="text-foreground">Suggestions for Improvement (Optional)</Label>
+                  <Textarea
+                    id="suggestions"
+                    name="suggestions"
+                    value={formData.suggestions}
+                    onChange={handleChange}
+                    placeholder="How can we make future events better?"
+                    className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground resize-none"
+                    rows={3}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="feedback" className="text-foreground">Additional Comments (Optional)</Label>
+                  <Textarea
+                    id="feedback"
+                    name="feedback"
+                    value={formData.feedback}
+                    onChange={handleChange}
+                    placeholder="Share your thoughts, suggestions, or improvements..."
+                    className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground resize-none"
+                    rows={4}
+                  />
+                </div>
               </div>
 
               <Button

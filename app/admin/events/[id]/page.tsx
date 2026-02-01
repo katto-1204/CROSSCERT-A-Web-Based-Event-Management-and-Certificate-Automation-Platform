@@ -464,7 +464,16 @@ export default function AdminEventDetailPage() {
             </div>
 
             {/* Live Countdown Circle */}
-            {timeLeft && (
+            {/* Live Countdown Circle or In Progress Status */}
+            {isStarted ? (
+              <div className="hidden lg:flex items-center justify-center relative w-40 h-40 rounded-full border border-green-500/50 bg-green-500/10 backdrop-blur-xl animate-pulse">
+                <div className="text-center">
+                  <div className="text-3xl font-black text-white mb-1 animate-bounce">LIVE</div>
+                  <div className="text-[10px] uppercase tracking-widest text-green-400 font-bold">Event In<br />Progress</div>
+                </div>
+                <div className="absolute inset-0 rounded-full border-2 border-green-500 opacity-20 animate-ping" />
+              </div>
+            ) : timeLeft && (
               <div className="hidden lg:flex items-center justify-center relative w-40 h-40 rounded-full border border-white/20 bg-black/20 backdrop-blur-xl animate-in fade-in zoom-in duration-1000 delay-300">
                 <div className="text-center">
                   <div className="text-3xl font-black text-white">{timeLeft.days}</div>
@@ -823,83 +832,95 @@ export default function AdminEventDetailPage() {
       {showParticipantsModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
           <Card className="w-full max-w-4xl mx-6 bg-white dark:bg-neutral-950 border-none rounded-3xl overflow-hidden shadow-2xl max-h-[85vh] flex flex-col">
-            <div className={`flex items-center justify-between p-6 border-b border-neutral-100 dark:border-neutral-800 ${colors.bg} text-white`}>
-              <div>
-                <h2 className="text-2xl font-bold">Event Participants</h2>
-                <p className="text-white/80 text-sm">Registered Attendees for {event.name}</p>
+            <div className="flex items-center justify-between p-6 border-b border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-900 sticky top-0 z-20">
+              <div className="flex items-center gap-4">
+                <div className={`w-12 h-12 rounded-2xl ${colors.bg} bg-opacity-10 flex items-center justify-center`}>
+                  <Users className={`w-6 h-6 ${colors.text.replace('100', '600')}`} />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-neutral-900 dark:text-white">Event Participants</h2>
+                  <p className="text-neutral-500 text-sm font-medium">Registered Attendees for {event.name}</p>
+                </div>
               </div>
-              <Button variant="ghost" onClick={() => setShowParticipantsModal(false)} className="rounded-full hover:bg-white/20 text-white">
-                <X className="w-6 h-6" />
+              <Button variant="ghost" onClick={() => setShowParticipantsModal(false)} className="rounded-full w-10 h-10 p-0 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors">
+                <X className="w-5 h-5" />
               </Button>
             </div>
 
-            <div className="p-4 border-b border-neutral-100 dark:border-neutral-800 flex items-center gap-4 bg-neutral-50 dark:bg-neutral-900">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+            <div className="p-4 border-b border-neutral-100 dark:border-neutral-800 flex items-center gap-4 bg-neutral-50/50 dark:bg-neutral-900/50 backdrop-blur-sm">
+              <div className="relative flex-1 group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 group-focus-within:text-neutral-900 dark:group-focus-within:text-white transition-colors" />
                 <input
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search participants..."
-                  className="w-full pl-10 pr-4 h-10 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-black text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Search by name, email, or affiliation..."
+                  className="w-full pl-10 pr-4 h-11 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 text-sm font-medium outline-none focus:ring-2 focus:ring-black/5 dark:focus:ring-white/10 transition-all shadow-sm"
                 />
               </div>
-              <div className="text-sm text-neutral-500 font-medium">
+              <div className="px-4 py-2 bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl text-xs font-bold text-neutral-500 uppercase tracking-wider shadow-sm">
                 {filteredParticipants.length} results
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-0">
+            <div className="flex-1 overflow-y-auto bg-white dark:bg-neutral-950">
               <table className="w-full text-left border-collapse">
-                <thead className="bg-neutral-50 dark:bg-neutral-900 sticky top-0 z-10">
+                <thead className="bg-neutral-50 dark:bg-neutral-900/50 sticky top-0 z-10 backdrop-blur-md">
                   <tr>
-                    <th className="p-4 text-xs font-bold text-neutral-500 uppercase tracking-wider">Name</th>
-                    <th className="p-4 text-xs font-bold text-neutral-500 uppercase tracking-wider">Email</th>
-                    <th className="p-4 text-xs font-bold text-neutral-500 uppercase tracking-wider">Affiliation</th>
-                    <th className="p-4 text-xs font-bold text-neutral-500 uppercase tracking-wider">Affiliation</th>
-                    <th className="p-4 text-xs font-bold text-neutral-500 uppercase tracking-wider text-right">Status</th>
-                    <th className="p-4 w-10"></th>
+                    <th className="p-4 pl-6 text-[10px] font-black text-neutral-400 uppercase tracking-wider">Participant</th>
+                    <th className="p-4 text-[10px] font-black text-neutral-400 uppercase tracking-wider">Email Contact</th>
+                    <th className="p-4 text-[10px] font-black text-neutral-400 uppercase tracking-wider">Affiliation</th>
+                    <th className="p-4 text-[10px] font-black text-neutral-400 uppercase tracking-wider text-right">Stats</th>
+                    <th className="p-4 w-12"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
                   {filteredParticipants.length > 0 ? (
                     filteredParticipants.map((reg) => (
-                      <tr key={reg.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-900/50">
-                        <td className="p-4 font-medium">{reg.first_name} {reg.last_name}</td>
-                        <td className="p-4 text-neutral-500 text-sm">
-                          {reg.email.length > 25 ? `${reg.email.substring(0, 25)}...` : reg.email}
+                      <tr key={reg.id} className="group border-b border-neutral-50 dark:border-neutral-900 last:border-0 hover:bg-neutral-50/80 dark:hover:bg-neutral-900/40 transition-colors">
+                        <td className="p-4 pl-6">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-full ${colors.bg} bg-opacity-10 flex items-center justify-center text-xs font-bold ${colors.text.replace('100', '700')}`}>
+                              {reg.first_name.charAt(0)}{reg.last_name.charAt(0)}
+                            </div>
+                            <span className="font-semibold text-neutral-900 dark:text-neutral-100">
+                              {reg.first_name} {reg.last_name}
+                            </span>
+                          </div>
                         </td>
-                        <td className="p-4"><Badge variant="outline" className="bg-neutral-50 dark:bg-neutral-900">{reg.affiliation}</Badge></td>
+                        <td className="p-4 text-neutral-500 text-sm font-medium">
+                          {reg.email}
+                        </td>
+                        <td className="p-4">
+                          <Badge variant="outline" className="bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 font-medium shadow-sm">
+                            {reg.affiliation}
+                          </Badge>
+                        </td>
                         <td className="p-4 text-right">
                           {reg.is_present ? (
-                            <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-none">Checked In</Badge>
+                            <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-200 border-none px-3 py-1">
+                              Checked In
+                            </Badge>
                           ) : (
                             <div className="flex items-center justify-end gap-2">
                               <Button
                                 size="sm"
-                                disabled={!isStarted} // Disabled if event not started
-                                onClick={async () => {
+                                disabled={!isStarted}
+                                onClick={async (e) => {
+                                  e.stopPropagation()
                                   try {
-                                    // Optimistic Update
                                     const updatedRegs = registrations.map(r =>
                                       r.id === reg.id ? { ...r, is_present: true } : r
                                     )
                                     setRegistrations(updatedRegs)
-
-                                    // API Call (Assuming PATCH matches backend logic)
                                     await apiCall.patch(api.registrationById(reg.id), { is_present: true })
-
-                                    // Refresh to be safe
-                                    // fetchEventAndData() // Optional, maybe too heavy
                                   } catch (e) {
                                     console.error("Check-in failed", e)
-                                    alert("Check-in failed")
                                   }
                                 }}
-                                className={`text-xs ${isStarted ? 'bg-neutral-900 text-white hover:bg-black' : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'}`}
+                                className={`h-8 text-xs font-bold rounded-lg transition-all ${isStarted ? 'bg-neutral-900 dark:bg-white text-white dark:text-black hover:scale-105 active:scale-95 shadow-md' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-400 cursor-not-allowed'}`}
                               >
-                                Check In
+                                {isStarted ? 'Check In' : 'Waiting to Start'}
                               </Button>
-                              <Badge className="bg-neutral-100 text-neutral-600 hover:bg-neutral-200 border-none">Registered</Badge>
                             </div>
                           )}
                         </td>
@@ -907,7 +928,7 @@ export default function AdminEventDetailPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-8 w-8 p-0 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                            className="h-8 w-8 p-0 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
                             onClick={async () => {
                               setSelectedParticipant(reg)
                               try {
@@ -926,7 +947,7 @@ export default function AdminEventDetailPage() {
                               }
                             }}
                           >
-                            <Printer className="w-4 h-4 text-neutral-400" />
+                            <Printer className="w-4 h-4" />
                           </Button>
                         </td>
                       </tr>

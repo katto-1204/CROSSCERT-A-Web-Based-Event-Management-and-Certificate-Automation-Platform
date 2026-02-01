@@ -4,10 +4,11 @@ import { useRouter } from 'next/navigation'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Search, CheckCircle, Star, Filter, ArrowLeft, MessageSquare, Quote, ThumbsUp, Medal, GraduationCap, Building2 } from 'lucide-react'
+import { Search, CheckCircle, Star, Filter, ArrowLeft, MessageSquare, Quote, ThumbsUp, Medal, GraduationCap, Building2, Image as ImageIcon } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { api, apiCall, adminApi } from '@/lib/api-config'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 
 type EvaluationRecord = {
   id: number
@@ -24,6 +25,7 @@ type EvaluationRecord = {
   event_title?: string
   event_id?: number
   participant_name?: string
+  image?: string
 }
 
 type EventRecord = {
@@ -36,6 +38,7 @@ export default function AdminEvaluations() {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedEvent, setSelectedEvent] = useState<string>('all')
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [evaluations, setEvaluations] = useState<EvaluationRecord[]>([])
   const [events, setEvents] = useState<EventRecord[]>([])
   const [error, setError] = useState('')
@@ -279,6 +282,19 @@ export default function AdminEvaluations() {
                   {new Date(evaluation.submitted_at).toLocaleDateString()}
                 </span>
               </div>
+
+              {evaluation.image && (
+                <div className="mt-4 pt-4 border-t border-neutral-100 dark:border-neutral-800">
+                  <Button
+                    variant="outline"
+                    className="w-full gap-2 text-neutral-600 dark:text-neutral-300 hover:text-red-600 dark:hover:text-red-400 group"
+                    onClick={() => setSelectedImage(evaluation.image || null)}
+                  >
+                    <ImageIcon className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                    View Attached Photo
+                  </Button>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -288,6 +304,22 @@ export default function AdminEvaluations() {
           <p>No evaluations found matching your filters.</p>
         </div>
       )}
+
+      {/* Image Modal */}
+      <Dialog open={!!selectedImage} onOpenChange={(open) => !open && setSelectedImage(null)}>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden bg-black border-none">
+          <DialogTitle className="sr-only">Evaluation Photo</DialogTitle>
+          <div className="relative w-full h-full flex items-center justify-center bg-black/50 backdrop-blur-3xl p-4">
+            {selectedImage && (
+              <img
+                src={selectedImage}
+                alt="Evaluation Attachment"
+                className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
     </div>
   )

@@ -36,27 +36,30 @@ class Certificate(models.Model):
         try:
             subject = f"Your Certificate for {self.registration.event.title}"
             
-            # Create plain-text email message
-            message = f"""
-Dear {self.registration.first_name},
+            # Render HTML content
+            from django.template.loader import render_to_string
+            from django.utils.html import strip_tags
+            
+            context = {
+                'full_name': self.registration.full_name,
+                'event_title': self.registration.event.title,
+                'event_date': self.registration.event.date,
+                'certificate_number': self.certificate_number,
+                'dashboard_url': f"{getattr(settings, 'FRONTEND_BASE_URL', 'http://localhost:3000')}/participant/certificates",
+                'current_year': datetime.now().year,
+            }
+            
+            html_message = render_to_string('emails/certificate_email.html', context)
+            plain_message = strip_tags(html_message)
 
-Congratulations! Your certificate for {self.registration.event.title} is ready.
-
-Event Date: {self.registration.event.date}
-Certificate Number: {self.certificate_number}
-
-Your certificate has been generated and is available in your account. You can view and download it from the "My Certificates" section.
-
-Best regards,
-CROSSCERT Team
-            """
-
-            email = EmailMessage(
+            from django.core.mail import EmailMultiAlternatives
+            email = EmailMultiAlternatives(
                 subject=subject,
-                body=message,
+                body=plain_message,
                 from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'crosscert.dvo@gmail.com'),
                 to=[self.registration.email],
             )
+            email.attach_alternative(html_message, "text/html")
 
             # Attach PDF certificate
             if self.pdf_file:

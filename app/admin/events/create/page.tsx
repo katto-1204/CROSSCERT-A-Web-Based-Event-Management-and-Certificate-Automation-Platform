@@ -3,7 +3,7 @@
 import { useMemo, useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Dialog, DialogContent, DialogTrigger, DialogTitle } from '@/components/ui/dialog'
-import { ArrowLeft, Upload, MapPin, CalendarIcon, Clock, Users, Ruler, Eye, Palette, Edit, Globe, Lock, Ticket, CheckCircle, UserCheck, Building2, Tag, BookOpen, GraduationCap, FileText, Maximize2, Loader2, Check } from 'lucide-react'
+import { ArrowLeft, Upload, MapPin, CalendarIcon, Clock, Users, Ruler, Eye, Palette, Edit, Globe, Lock, Ticket, CheckCircle, UserCheck, Building2, Tag, BookOpen, GraduationCap, FileText, Maximize2, Loader2, Check, Dumbbell, Coffee, Building, Mic, Drama, Monitor, Video, AlertCircle } from 'lucide-react'
 
 
 
@@ -49,16 +49,19 @@ const COLLEGES = {
 }
 
 const VENUES = [
-  'HCDC Gymnasium',
-  'Student Lounge',
-  'Sedes Sapientiae',
-  'Function Hall',
-  'Cross Theatre',
+  { name: 'HCDC Gymnasium', capacity: 5000, icon: <Dumbbell className="w-5 h-5" /> },
+  { name: 'Student Lounge', capacity: 300, icon: <Coffee className="w-5 h-5" /> },
+  { name: 'Sedes Sapientiae', capacity: 1000, icon: <Building className="w-5 h-5" /> },
+  { name: 'Function Hall', capacity: 150, icon: <Mic className="w-5 h-5" /> },
+  { name: 'Cross Theatre', capacity: 300, icon: <Drama className="w-5 h-5" /> },
+  { name: 'ITLAB', capacity: 40, icon: <Monitor className="w-5 h-5" /> },
+  { name: 'SSG Studio', capacity: 50, icon: <Video className="w-5 h-5" /> },
+  { name: 'Conference Room', capacity: 70, icon: <Users className="w-5 h-5" /> },
 ]
 
 const SEMESTERS = [
-  'First Semester',
-  'Second Semester',
+  '1st Semester',
+  '2nd Semester',
   'Summer',
 ]
 
@@ -126,6 +129,7 @@ export default function CreateEventPage() {
   const [error, setError] = useState('')
   const [publishStatus, setPublishStatus] = useState<'idle' | 'loading' | 'success'>('idle')
   const [showPublishModal, setShowPublishModal] = useState(false)
+  const [showErrorModal, setShowErrorModal] = useState(false)
   const [createdEventId, setCreatedEventId] = useState<string | null>(null)
 
   // Initialize CSRF token on component mount
@@ -196,6 +200,20 @@ export default function CreateEventPage() {
   // Actual certificate image size (from uploaded template); used so
   // coordinates match the real PDF dimensions from the backend.
   const [certificateSize, setCertificateSize] = useState(CERTIFICATE_DIMENSION)
+  const [previewWidth, setPreviewWidth] = useState(0)
+
+  useEffect(() => {
+    if (!certificatePreviewRef.current) return
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setPreviewWidth(entry.contentRect.width)
+      }
+    })
+
+    observer.observe(certificatePreviewRef.current)
+    return () => observer.disconnect()
+  }, [])
 
   const totalSteps = 6
 
@@ -359,6 +377,20 @@ export default function CreateEventPage() {
   }, [draggingField, certificateSize.height, certificateSize.width])
 
   const handleCreateEvent = async () => {
+    // Validate that the event is at least 5 hours from now
+    if (eventDate && startTime) {
+      const startDateTime = new Date(`${eventDate}T${startTime}`)
+      const now = new Date()
+      const diffInHours = (startDateTime.getTime() - now.getTime()) / (1000 * 60 * 60)
+
+      // Validate that the event is at least 1 day (24 hours) from now
+      if (diffInHours < 24) {
+        setError('Events must be scheduled at least 1 day in advance.')
+        setShowErrorModal(true)
+        return
+      }
+    }
+
     // Post event to backend API
     setIsLoading(true)
     setShowPublishModal(true)
@@ -577,7 +609,12 @@ export default function CreateEventPage() {
                         <span className="text-destructive">*</span>
                         Event Date
                       </Label>
-                      <Input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} />
+                      <Input
+                        type="date"
+                        value={eventDate}
+                        onChange={(e) => setEventDate(e.target.value)}
+                        min={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label className="text-sm">Timezone</Label>
@@ -613,20 +650,66 @@ export default function CreateEventPage() {
                       <span className="text-destructive">*</span>
                       Venue
                     </Label>
-                    <div className="flex gap-2">
-                      <Input
-                        value={venue}
-                        onChange={(e) => setVenue(e.target.value)}
-                        placeholder="e.g., HCDC Gymnasium"
-                        list="venue-suggestions"
-                        className="flex-1"
-                      />
-                      <datalist id="venue-suggestions">
-                        {VENUES.map(v => <option key={v} value={v} />)}
-                      </datalist>
-                      <Button variant="outline" size="icon" type="button">
-                        <MapPin className="w-4 h-4" />
-                      </Button>
+                    <div className="space-y-4">
+                      {/* Visual Venue Selector */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {VENUES.map((v) => (
+                          <div
+                            key={v.name}
+                            onClick={() => {
+                              setVenue(v.name)
+                              // Auto-suggest capacity if enabled
+                              if (hasCapacityLimit) {
+                                setCapacity(v.capacity.toString())
+                              }
+                            }}
+                            className={`
+                              cursor-pointer p-4 rounded-xl border transition-all duration-200 flex items-start gap-3 relative overflow-hidden group
+                              ${venue === v.name
+                                ? 'border-primary bg-primary/5 shadow-sm ring-1 ring-primary'
+                                : 'border-border bg-card hover:border-primary/50 hover:bg-muted/50'
+                              }
+                            `}
+                          >
+                            <div className={`
+                              w-10 h-10 rounded-lg flex items-center justify-center text-lg shadow-sm transition-colors
+                              ${venue === v.name ? 'bg-primary text-white' : 'bg-muted text-muted-foreground group-hover:bg-background'}
+                            `}>
+                              {v.icon}
+                            </div>
+                            <div className="flex-1">
+                              <p className={`font-semibold text-sm ${venue === v.name ? 'text-primary' : 'text-foreground'}`}>
+                                {v.name}
+                              </p>
+                              <div className="flex items-center gap-3 mt-1.5">
+                                <span className="text-xs text-muted-foreground flex items-center gap-1 bg-muted px-1.5 py-0.5 rounded-md">
+                                  <Users className="w-3 h-3" />
+                                  {v.capacity}
+                                </span>
+                              </div>
+                            </div>
+                            {venue === v.name && (
+                              <div className="absolute top-3 right-3 animate-in fade-in zoom-in duration-200">
+                                <CheckCircle className="w-4 h-4 text-primary fill-primary/20" />
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Custom Venue Input */}
+                      <div className="pt-2">
+                        <Label className="text-xs text-muted-foreground mb-1.5 ml-1 block">Or enter a custom venue</Label>
+                        <div className="relative">
+                          <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            value={venue}
+                            onChange={(e) => setVenue(e.target.value)}
+                            placeholder="Type a custom venue name..."
+                            className="pl-9 bg-muted/30"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1075,7 +1158,7 @@ export default function CreateEventPage() {
 
                     {/* Poster Mode Overlay */}
                     {cardStyle === 'poster' && (
-                      <div className={`absolute inset-0 bg-gradient-to-t ${activeTheme.id === 11 ? 'from-white via-white/50' : 'from-black/95 via-black/50'} to-transparent pointer-events-none`} />
+                      <div className={`absolute inset-0 bg-gradient-to-t ${activeTheme.id === 11 ? 'from-white via-white/50' : 'from-white/95 via-white/40 dark:from-black/95 dark:via-black/50'} to-transparent pointer-events-none`} />
                     )}
 
                     {/* Date Badge - Themed */}
@@ -1098,28 +1181,28 @@ export default function CreateEventPage() {
 
                   {/* Content */}
                   <div className={`p-6 relative transition-all ${cardStyle === 'poster' ? 'mt-auto z-20' : ''} ${useGlass ? 'bg-white/30 backdrop-blur-xl border border-white/20 shadow-lg' : activeTheme.id === 11 && cardStyle !== 'poster' ? 'bg-white' : ''}`}>
-                    <h3 className={`text-xl font-bold line-clamp-2 mb-3 ${cardStyle === 'poster' ? (activeTheme.id === 11 ? 'text-slate-900' : 'text-white') : activeTheme.textColor || 'text-foreground'}`}>
+                    <h3 className={`text-xl font-bold line-clamp-2 mb-3 ${cardStyle === 'poster' ? (activeTheme.id === 11 ? 'text-slate-900' : 'text-foreground dark:text-white') : activeTheme.textColor || 'text-foreground'}`}>
                       {eventName || 'Annual Cross Blazers Cup 2024'}
                     </h3>
 
                     <div className="space-y-3 mb-6">
-                      <div className={`flex items-center gap-3 text-sm ${cardStyle === 'poster' ? (activeTheme.id === 11 ? 'text-slate-700' : 'text-white/80') : 'text-muted-foreground'}`}>
-                        <Clock className={`w-4 h-4 ${cardStyle === 'poster' ? (activeTheme.id === 11 ? 'text-slate-900' : 'text-white/80') : activeTheme.textColor || 'text-primary'}`} />
+                      <div className={`flex items-center gap-3 text-sm ${cardStyle === 'poster' ? (activeTheme.id === 11 ? 'text-slate-700' : 'text-muted-foreground dark:text-white/80') : 'text-muted-foreground'}`}>
+                        <Clock className={`w-4 h-4 ${cardStyle === 'poster' ? (activeTheme.id === 11 ? 'text-slate-900' : 'text-foreground dark:text-white/80') : activeTheme.textColor || 'text-primary'}`} />
                         <span>
                           {startTime && endTime ? `${startTime} - ${endTime}` : '8:00 AM - 5:00 PM'}
                         </span>
                       </div>
-                      <div className={`flex items-center gap-3 text-sm ${cardStyle === 'poster' ? (activeTheme.id === 11 ? 'text-slate-700' : 'text-white/80') : 'text-muted-foreground'}`}>
-                        <MapPin className={`w-4 h-4 ${cardStyle === 'poster' ? (activeTheme.id === 11 ? 'text-slate-900' : 'text-white/80') : activeTheme.textColor || 'text-primary'}`} />
+                      <div className={`flex items-center gap-3 text-sm ${cardStyle === 'poster' ? (activeTheme.id === 11 ? 'text-slate-700' : 'text-muted-foreground dark:text-white/80') : 'text-muted-foreground'}`}>
+                        <MapPin className={`w-4 h-4 ${cardStyle === 'poster' ? (activeTheme.id === 11 ? 'text-slate-900' : 'text-foreground dark:text-white/80') : activeTheme.textColor || 'text-primary'}`} />
                         <span>{venue || 'HCDC Gymnasium'}</span>
                       </div>
                     </div>
 
                     {/* Action Area */}
-                    <div className={`flex items-center justify-between pt-4 border-t ${cardStyle === 'poster' ? (activeTheme.id === 11 ? 'border-slate-200' : 'border-white/20') : activeTheme.border ? activeTheme.border.replace('border-', 'border-').replace('500', '200').replace('600', '200').replace('700', '200').replace('900', '200') : 'border-border'}`}>
+                    <div className={`flex items-center justify-between pt-4 border-t ${cardStyle === 'poster' ? (activeTheme.id === 11 ? 'border-slate-200' : 'border-border dark:border-white/20') : activeTheme.border ? activeTheme.border.replace('border-', 'border-').replace('500', '200').replace('600', '200').replace('700', '200').replace('900', '200') : 'border-border'}`}>
                       <div className="flex items-center gap-2">
-                        <span className={`text-xs ${cardStyle === 'poster' ? (activeTheme.id === 11 ? 'text-slate-600' : 'text-white/70') : 'text-muted-foreground'}`}>Tickets starting at</span>
-                        <span className={`font-bold ${cardStyle === 'poster' ? (activeTheme.id === 11 ? 'text-slate-900' : 'text-white') : activeTheme.textColor || 'text-foreground'}`}>
+                        <span className={`text-xs ${cardStyle === 'poster' ? (activeTheme.id === 11 ? 'text-slate-600' : 'text-muted-foreground dark:text-white/70') : 'text-muted-foreground'}`}>Tickets starting at</span>
+                        <span className={`font-bold ${cardStyle === 'poster' ? (activeTheme.id === 11 ? 'text-slate-900' : 'text-foreground dark:text-white') : activeTheme.textColor || 'text-foreground'}`}>
                           {isPaidEvent ? `₱${Number(ticketPrice).toLocaleString()}` : 'Free'}
                         </span>
                       </div>
@@ -1470,7 +1553,7 @@ export default function CreateEventPage() {
                         left: `${(certificateCoordinates.name.x / certificateSize.width) * 100}%`,
                         bottom: `${(certificateCoordinates.name.y / certificateSize.height) * 100}%`,
                         transform: 'translate(-50%, 50%)',
-                        fontSize: `${nameFontSize}px`,
+                        fontSize: `${nameFontSize * (previewWidth ? previewWidth / certificateSize.width : 1)}px`,
                         color: nameFontColor,
                       }}
                       onMouseDown={(e) => handleDragStart('name', e)}
@@ -1483,7 +1566,7 @@ export default function CreateEventPage() {
                         left: `${(certificateCoordinates.eventTitle.x / certificateSize.width) * 100}%`,
                         bottom: `${(certificateCoordinates.eventTitle.y / certificateSize.height) * 100}%`,
                         transform: 'translate(-50%, 50%)',
-                        fontSize: `${eventTitleFontSize}px`,
+                        fontSize: `${eventTitleFontSize * (previewWidth ? previewWidth / certificateSize.width : 1)}px`,
                         color: eventTitleFontColor,
                       }}
                       onMouseDown={(e) => handleDragStart('eventTitle', e)}
@@ -1496,7 +1579,7 @@ export default function CreateEventPage() {
                         left: `${(certificateCoordinates.date.x / certificateSize.width) * 100}%`,
                         bottom: `${(certificateCoordinates.date.y / certificateSize.height) * 100}%`,
                         transform: 'translate(-50%, 50%)',
-                        fontSize: `${dateFontSize}px`,
+                        fontSize: `${dateFontSize * (previewWidth ? previewWidth / certificateSize.width : 1)}px`,
                         color: dateFontColor,
                       }}
                       onMouseDown={(e) => handleDragStart('date', e)}
@@ -1971,7 +2054,7 @@ export default function CreateEventPage() {
 
                         {/* Poster Mode Overlay */}
                         {cardStyle === 'poster' && (
-                          <div className={`absolute inset-0 bg-gradient-to-t ${activeTheme.id === 11 ? 'from-white via-white/50' : 'from-black/95 via-black/50'} to-transparent pointer-events-none`} />
+                          <div className={`absolute inset-0 bg-gradient-to-t ${activeTheme.id === 11 ? 'from-white via-white/50' : 'from-white/95 via-white/40 dark:from-black/95 dark:via-black/50'} to-transparent pointer-events-none`} />
                         )}
 
                         {/* Date Badge */}
@@ -1987,28 +2070,28 @@ export default function CreateEventPage() {
 
                       {/* Content */}
                       <div className={`p-5 relative transition-all ${cardStyle === 'poster' ? 'mt-auto z-20' : ''} ${useGlass ? 'bg-white/30 backdrop-blur-xl border border-white/20 shadow-lg' : activeTheme.id === 11 && cardStyle !== 'poster' ? 'bg-white' : ''}`}>
-                        <h3 className={`text-lg font-bold line-clamp-2 mb-2 ${cardStyle === 'poster' ? (activeTheme.id === 11 ? 'text-slate-900' : 'text-white') : activeTheme.textColor || 'text-foreground'}`}>
+                        <h3 className={`text-lg font-bold line-clamp-2 mb-2 ${cardStyle === 'poster' ? (activeTheme.id === 11 ? 'text-slate-900' : 'text-foreground dark:text-white') : activeTheme.textColor || 'text-foreground'}`}>
                           {eventName || 'Annual Cross Blazers Cup 2024'}
                         </h3>
 
                         <div className="space-y-2 mb-4">
-                          <div className={`flex items-center gap-2 text-xs ${cardStyle === 'poster' ? (activeTheme.id === 11 ? 'text-slate-700' : 'text-white/80') : 'text-muted-foreground'}`}>
-                            <Clock className={`w-3.5 h-3.5 ${cardStyle === 'poster' ? (activeTheme.id === 11 ? 'text-slate-900' : 'text-white/80') : activeTheme.textColor || 'text-primary'}`} />
+                          <div className={`flex items-center gap-2 text-xs ${cardStyle === 'poster' ? (activeTheme.id === 11 ? 'text-slate-700' : 'text-muted-foreground dark:text-white/80') : 'text-muted-foreground'}`}>
+                            <Clock className={`w-3.5 h-3.5 ${cardStyle === 'poster' ? (activeTheme.id === 11 ? 'text-slate-900' : 'text-foreground dark:text-white/80') : activeTheme.textColor || 'text-primary'}`} />
                             <span>
                               {startTime && endTime ? `${startTime} - ${endTime}` : '8:00 AM - 5:00 PM'}
                             </span>
                           </div>
-                          <div className={`flex items-center gap-2 text-xs ${cardStyle === 'poster' ? (activeTheme.id === 11 ? 'text-slate-700' : 'text-white/80') : 'text-muted-foreground'}`}>
-                            <MapPin className={`w-3.5 h-3.5 ${cardStyle === 'poster' ? (activeTheme.id === 11 ? 'text-slate-900' : 'text-white/80') : activeTheme.textColor || 'text-primary'}`} />
+                          <div className={`flex items-center gap-2 text-xs ${cardStyle === 'poster' ? (activeTheme.id === 11 ? 'text-slate-700' : 'text-muted-foreground dark:text-white/80') : 'text-muted-foreground'}`}>
+                            <MapPin className={`w-3.5 h-3.5 ${cardStyle === 'poster' ? (activeTheme.id === 11 ? 'text-slate-900' : 'text-foreground dark:text-white/80') : activeTheme.textColor || 'text-primary'}`} />
                             <span>{venue || 'HCDC Gymnasium'}</span>
                           </div>
                         </div>
 
                         {/* Action Area */}
-                        <div className={`flex items-center justify-between pt-3 border-t ${cardStyle === 'poster' ? (activeTheme.id === 11 ? 'border-slate-200' : 'border-white/20') : activeTheme.border ? activeTheme.border.replace('border-', 'border-').replace('500', '200').replace('600', '200').replace('700', '200').replace('900', '200') : 'border-border'}`}>
+                        <div className={`flex items-center justify-between pt-3 border-t ${cardStyle === 'poster' ? (activeTheme.id === 11 ? 'border-slate-200' : 'border-border dark:border-white/20') : activeTheme.border ? activeTheme.border.replace('border-', 'border-').replace('500', '200').replace('600', '200').replace('700', '200').replace('900', '200') : 'border-border'}`}>
                           <div className="flex items-center gap-1.5">
-                            <span className={`text-[10px] ${cardStyle === 'poster' ? (activeTheme.id === 11 ? 'text-slate-600' : 'text-white/70') : 'text-muted-foreground'}`}>Tickets from</span>
-                            <span className={`font-bold text-sm ${cardStyle === 'poster' ? (activeTheme.id === 11 ? 'text-slate-900' : 'text-white') : activeTheme.textColor || 'text-foreground'}`}>
+                            <span className={`text-[10px] ${cardStyle === 'poster' ? (activeTheme.id === 11 ? 'text-slate-600' : 'text-muted-foreground dark:text-white/70') : 'text-muted-foreground'}`}>Tickets from</span>
+                            <span className={`font-bold text-sm ${cardStyle === 'poster' ? (activeTheme.id === 11 ? 'text-slate-900' : 'text-foreground dark:text-white') : activeTheme.textColor || 'text-foreground'}`}>
                               {isPaidEvent ? `₱${Number(ticketPrice).toLocaleString()}` : 'Free'}
                             </span>
                           </div>
@@ -2202,6 +2285,28 @@ export default function CreateEventPage() {
               </Button>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Error Modal */}
+      <Dialog open={showErrorModal} onOpenChange={setShowErrorModal}>
+        <DialogContent className="sm:max-w-md text-center p-6">
+          <DialogTitle className="sr-only">Validation Error</DialogTitle>
+          <div className="flex flex-col items-center justify-center space-y-4 pt-4">
+            <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
+              <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-500" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-xl font-bold text-foreground">Scheduling Error</h3>
+              <p className="text-muted-foreground">{error}</p>
+            </div>
+            <Button
+              onClick={() => setShowErrorModal(false)}
+              className="w-full bg-red-600 hover:bg-red-700 text-white mt-2"
+            >
+              Okay, I understand
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

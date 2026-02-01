@@ -96,13 +96,9 @@ class CertificateGenerator:
         x = coords.get('x', self.page_width / 2)
         y = coords.get('y', self.page_height / 2)
         
-        # Calculate scale factor based on reference width (1123px)
-        # This ensures font sizes set in the UI (which uses 1123 as reference)
-        # scale proportionally to the actual template resolution.
-        scale_factor = self.page_width / 1123.0
-        scaled_size = size * scale_factor
-        
-        c.setFont(font, scaled_size)
+        # Use the font size directly without scaling
+        # The frontend preview uses the same sizes, so we match exactly
+        c.setFont(font, size)
         # Use provided color or fall back to default text color
         text_color = HexColor(color) if color else self.text_color
         c.setFillColor(text_color)

@@ -9,6 +9,8 @@ export function clearAllLocalStorage(): void {
   if (typeof window === 'undefined') return
 
   // List of all localStorage keys used in the application
+  // List of all localStorage keys used in the application
+  // Note: bookmarkedEvents is intentionally NOT cleared so bookmarks persist
   const keysToRemove = [
     'userRole',
     'userEmail',
@@ -20,7 +22,6 @@ export function clearAllLocalStorage(): void {
     'userBirthday',
     'crosscert_local_events',
     'events',
-    'bookmarkedEvents',
     'registrations',
     'evaluations',
   ]
@@ -44,14 +45,14 @@ export function clearAllLocalStorage(): void {
         remainingKeys.push(key)
       }
     }
-    
+
     // Remove any remaining keys that start with common prefixes
     remainingKeys.forEach((key) => {
+      // Note: bookmarkedEvents is intentionally NOT cleared so bookmarks persist
       if (
         key.startsWith('crosscert_') ||
         key.startsWith('user') ||
         key === 'events' ||
-        key === 'bookmarkedEvents' ||
         key === 'registrations' ||
         key === 'evaluations'
       ) {
@@ -75,7 +76,7 @@ export function clearAllLocalStorage(): void {
  */
 export async function performLogout(apiLogout: boolean = true): Promise<void> {
   console.log('[Logout] Starting logout process...')
-  
+
   // Clear all localStorage data
   clearAllLocalStorage()
 

@@ -1,66 +1,124 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-    <meta charset="UTF-8">
-    <title>Your Certificate - {{ event_title }}</title>
+    <meta charset="utf-8">
+    <title>Your Certificate is Ready</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333333;
+            margin: 0;
+            padding: 0;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        .container {
             max-width: 600px;
             margin: 0 auto;
-            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
+
         .header {
+            background-color: #bf1818;
+            padding: 30px;
             text-align: center;
-            padding: 20px 0;
-            background-color: #f8f9fa;
-            border-radius: 5px;
-            margin-bottom: 20px;
         }
-        .button {
-            display: inline-block;
-            padding: 12px 24px;
-            background-color: #4CAF50;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            margin: 20px 0;
+
+        .header h1 {
+            margin: 0;
+            color: #ffffff;
+            font-size: 24px;
             font-weight: bold;
         }
+
+        .content {
+            padding: 40px 30px;
+            color: #333333;
+            line-height: 1.6;
+        }
+
+        .button {
+            display: inline-block;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            padding: 12px 24px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+
         .footer {
-            margin-top: 30px;
-            font-size: 12px;
-            color: #777777;
+            background-color: #f9fafb;
+            padding: 20px;
             text-align: center;
+            font-size: 12px;
+            color: #6b7280;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .details-box {
+            background-color: #f3f4f6;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 20px 0;
+            border-left: 4px solid #bf1818;
+        }
+
+        .detail-item {
+            margin-bottom: 8px;
+        }
+
+        .detail-label {
+            font-weight: bold;
+            color: #4b5563;
+        }
+
+        .detail-value {
+            color: #111827;
         }
     </style>
 </head>
+
 <body>
-    <div class="header">
-        <h1>Your Certificate is Ready!</h1>
-    </div>
-    
-    <p>Dear {{ participant_name }},</p>
-    
-    <p>Congratulations! Your certificate for <strong>{{ event_title }}</strong> is now available. 
-    You can download it by clicking the button below:</p>
-    
-    <div style="text-align: center;">
-        <a href="{{ certificate_url }}" class="button">Download Certificate</a>
-    </div>
-    
-    <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
-    <p><a href="{{ certificate_url }}">{{ certificate_url }}</a></p>
-    
-    <p>Thank you for participating in our event. We hope to see you again soon!</p>
-    
-    <p>Best regards,<br>The CROSSCERT Team</p>
-    
-    <div class="footer">
-        <p>This is an automated message. Please do not reply to this email.</p>
-        <p>© {% now "Y" %} CROSSCERT. All rights reserved.</p>
+    <div style="padding: 40px 20px;">
+        <div class="container">
+            <div class="header">
+                <h1>Certificate Available</h1>
+            </div>
+            <div class="content">
+                <p style="font-size: 18px; color: #111827; margin-top: 0;">Dear {{ full_name }},</p>
+
+                <p>Congratulations! We are pleased to inform you that your certificate for <strong>{{ event_title
+                        }}</strong> has been generated and is ready.</p>
+
+                <div class="details-box">
+                    <div class="detail-item">
+                        <span class="detail-label">Event Date:</span>
+                        <span class="detail-value">{{ event_date }}</span>
+                    </div>
+                    <div class="detail-item" style="margin-bottom: 0;">
+                        <span class="detail-label">Certificate ID:</span>
+                        <span class="detail-value">{{ certificate_number }}</span>
+                    </div>
+                </div>
+
+                <p>Your certificate is attached to this email as a PDF. You can also view and download it anytime from
+                    your CROSSCERT dashboard.</p>
+
+                <div style="text-align: center;">
+                    <a href="{{ dashboard_url }}" class="button" style="color: #ffffff;">View in Dashboard</a>
+                </div>
+            </div>
+            <div class="footer">
+                <p>&copy; {{ current_year }} CROSSCERT. All rights reserved.</p>
+                <p>Holy Cross of Davao College</p>
+            </div>
+        </div>
     </div>
 </body>
+
 </html>
