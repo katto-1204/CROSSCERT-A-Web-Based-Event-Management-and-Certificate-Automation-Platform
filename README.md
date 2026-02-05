@@ -87,7 +87,6 @@ graph LR
     style CERT fill:#003366,stroke:#fff,stroke-width:2px,color:#fff
 ```
 
----
 
 ## Deployment & Setup
 
