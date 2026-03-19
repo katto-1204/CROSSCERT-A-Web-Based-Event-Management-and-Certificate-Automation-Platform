@@ -181,7 +181,6 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:3000',
     'https://crosscert.vercel.app',
     'https://crosscert-kat-arnados-projects.vercel.app',
-    'https://crosscert-production.up.railway.app',
     'https://crosscert-a-web-based-event-management.onrender.com',
 ]
 
