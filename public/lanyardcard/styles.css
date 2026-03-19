@@ -1,4 +1,4 @@
-:not(:defined) > * {
+:not(:defined)>* {
   display: none;
 }
 
@@ -63,7 +63,7 @@ model-viewer {
   padding: 0px 16px 0px 40px;
   font-family: Roboto Regular, Helvetica Neue, sans-serif;
   font-size: 14px;
-  color:#4285f4;
+  color: #4285f4;
   height: 36px;
   line-height: 36px;
   border-radius: 18px;
@@ -83,16 +83,26 @@ model-viewer {
 }
 
 @keyframes circle {
-  from { transform: translateX(-50%) rotate(0deg) translateX(50px) rotate(0deg); }
-  to   { transform: translateX(-50%) rotate(360deg) translateX(50px) rotate(-360deg); }
+  from {
+    transform: translateX(-50%) rotate(0deg) translateX(50px) rotate(0deg);
+  }
+
+  to {
+    transform: translateX(-50%) rotate(360deg) translateX(50px) rotate(-360deg);
+  }
 }
 
 @keyframes elongate {
-  from { transform: translateX(100px); }
-  to   { transform: translateX(-100px); }
+  from {
+    transform: translateX(100px);
+  }
+
+  to {
+    transform: translateX(-100px);
+  }
 }
 
-model-viewer > #ar-prompt {
+model-viewer>#ar-prompt {
   position: absolute;
   left: 50%;
   bottom: 60px;
@@ -100,10 +110,10 @@ model-viewer > #ar-prompt {
   display: none;
 }
 
-model-viewer[ar-status="session-started"] > #ar-prompt {
+model-viewer[ar-status="session-started"]>#ar-prompt {
   display: block;
 }
 
-model-viewer > #ar-prompt > img {
+model-viewer>#ar-prompt>img {
   animation: circle 4s linear infinite;
 }

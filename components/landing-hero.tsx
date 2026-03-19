@@ -64,7 +64,7 @@ function Band({ maxSpeed = 50, minSpeed = 0 }: BandProps) {
 
   const segmentProps: any = { type: 'dynamic' as RigidBodyProps['type'], canSleep: true, colliders: false, angularDamping: 4, linearDamping: 4 }
 
-  const { nodes, materials } = useGLTF('/lanyardcard/card.glb') as any
+  const { nodes, materials } = useGLTF('/api/card.glb') as any
   const texture = useTexture('/lanyardcard/lanyard.png')
   const ccLogo = useTexture('/crosscert-logo.png')
   const hcdcLogo = useTexture('/hcdc black.png')
