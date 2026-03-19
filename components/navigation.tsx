@@ -66,6 +66,15 @@ export function Navigation() {
 
         {/* Right Actions */}
         <div className="flex items-center gap-1 sm:gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="hidden sm:flex rounded-full h-9 px-4 text-xs font-semibold text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors"
+            onClick={() => window.open('/crosscert_user_manual.pdf', '_blank')}
+          >
+            User Manual
+          </Button>
+
           <ThemeToggle />
 
           <div className="hidden sm:block">
@@ -131,7 +140,21 @@ export function Navigation() {
 
                 <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-2" />
 
-                <div className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-zinc-500">Account</div>
+                <div className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-zinc-500">Account & Help</div>
+                
+                <button
+                  className="flex items-center gap-4 w-full p-3 rounded-2xl hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors group mb-2"
+                  onClick={() => {
+                    setIsOpen(false)
+                    window.open('/crosscert_user_manual.pdf', '_blank')
+                  }}
+                >
+                  <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:text-primary transition-colors shadow-sm">
+                    <Info className="w-5 h-5" />
+                  </div>
+                  <span className="font-bold text-sm tracking-tight">User Manual</span>
+                </button>
+
                 <button
                   className="flex items-center gap-4 w-full p-3 rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-xl shadow-primary/20"
                   onClick={() => {

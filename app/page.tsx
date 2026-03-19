@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import { useTheme } from 'next-themes'
 import { Navigation } from '@/components/navigation'
 import { LandingHero } from '@/components/landing-hero'
+import { WelcomeModal } from '@/components/welcome-modal'
 
 export default function Home() {
   const router = useRouter()
@@ -78,6 +79,7 @@ export default function Home() {
 
       {/* Content */}
       <div className="relative z-0">
+        <WelcomeModal />
         <Navigation />
         <LandingHero />
 

@@ -175,8 +175,7 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
 
 APPEND_SLASH = False # Prevents redirects that break CORS preflights
 
-# CSRF Configuration for CORS
-# Trusting both your main domain and the Vercel preview domain
+
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
