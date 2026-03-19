@@ -33,7 +33,7 @@ export function WelcomeModal() {
 
   const handleUserManual = () => {
     handleClose()
-    window.open('/crosscert_user_manual.pdf', '_blank')
+    window.open('/crossmanual.pdf', '_blank')
   }
 
   return (
