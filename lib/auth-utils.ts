@@ -37,6 +37,16 @@ export function clearAllLocalStorage(): void {
     }
   })
 
+  // Clear userRole cookie
+  try {
+    if (typeof document !== 'undefined') {
+      document.cookie = 'userRole=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax'
+      console.log('[Logout] Cleared userRole cookie')
+    }
+  } catch (err) {
+    console.warn('[Logout] Failed to clear userRole cookie:', err)
+  }
+
   // Clear any remaining localStorage items that might have been added
   try {
     const remainingKeys: string[] = []
@@ -100,4 +110,16 @@ export async function performLogout(apiLogout: boolean = true): Promise<void> {
  * Alias for performLogout for backward compatibility
  */
 export const handleLogout = performLogout
+
+/**
+ * Set auth role cookie
+ */
+export function setAuthRoleCookie(role: 'admin' | 'participant'): void {
+  if (typeof document === 'undefined') return
+
+  const maxAge = 60 * 60 * 24 * 7 // 7 days
+  const secure = typeof window !== 'undefined' && window.location.protocol === 'https:'
+  document.cookie = `userRole=${role}; path=/; max-age=${maxAge}; ${secure ? 'Secure;' : ''} SameSite=Lax`
+  console.log(`[Auth] Role cookie set: userRole=${role}`)
+}
 

@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { MapPin, Calendar, Clock, ArrowLeft, Share2, Ticket, Users, FileText, CheckCircle2, AlertCircle, Info, Landmark, Bookmark, QrCode, GraduationCap, School, Download, X, Facebook, Instagram, Twitter, Mail, Heart, Star, Rocket } from 'lucide-react'
+import { MapPin, Calendar, Clock, ArrowLeft, Share2, Ticket, Users, FileText, CheckCircle2, AlertCircle, Info, Landmark, Bookmark, QrCode, GraduationCap, School, Download, X, Facebook, Instagram, Twitter, Mail, Heart, Star, Rocket, Loader2 } from 'lucide-react'
 import { getEventById, getRegistrationStatus, Event, fetchUserDepartment } from '@/lib/event-context'
 import { getAuthenticatedUserEmail, api, apiCall, authApi, apiRequest } from '@/lib/api-config'
 import { fetchBookmarkIds, toggleBookmark as syncToggleBookmark, migrateLocalBookmarksToServer } from '@/lib/bookmarks'
@@ -54,6 +54,7 @@ export default function ParticipantEventDetailPage() {
   const [hasAccess, setHasAccess] = useState<boolean>(false)
   const [isBookmarked, setIsBookmarked] = useState<boolean>(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [isRegistering, setIsRegistering] = useState(false)
   const router = useRouter()
   const params = useParams()
 
@@ -185,6 +186,7 @@ export default function ParticipantEventDetailPage() {
       return
     }
 
+    setIsRegistering(true)
     // Attempt registration
     try {
       let firstName = 'Participant'
@@ -236,6 +238,8 @@ export default function ParticipantEventDetailPage() {
     } catch (err) {
       console.error(err)
       setErrorMessage('An error occurred.')
+    } finally {
+      setIsRegistering(false)
     }
   }
 
@@ -614,13 +618,15 @@ export default function ParticipantEventDetailPage() {
 
                     <Button
                       onClick={handleMainAction}
-                      disabled={registrationStatus === 'none' && (event.status?.toLowerCase() === 'concluded' || event.status?.toLowerCase() === 'completed' || event.status?.toLowerCase() === 'paused')}
+                      disabled={isRegistering || (registrationStatus === 'none' && (event.status?.toLowerCase() === 'concluded' || event.status?.toLowerCase() === 'completed' || event.status?.toLowerCase() === 'paused'))}
                       className={`w-full h-14 text-lg font-bold rounded-2xl shadow-xl hover:scale-[1.02] active:scale-95 transition-all duration-200 ${registrationStatus === 'none' && (event.status?.toLowerCase() === 'concluded' || event.status?.toLowerCase() === 'completed' || event.status?.toLowerCase() === 'paused')
                         ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed shadow-none hover:scale-100' // Disabled style
                         : activeButtonColor(registrationStatus, colors)
                         }`}
                     >
-                      {registrationStatus === 'none' && (event.status?.toLowerCase() === 'concluded' || event.status?.toLowerCase() === 'completed')
+                      {isRegistering ? (
+                        <><Loader2 className="w-5 h-5 mr-2 animate-spin" />Registering...</>
+                      ) : registrationStatus === 'none' && (event.status?.toLowerCase() === 'concluded' || event.status?.toLowerCase() === 'completed')
                         ? 'Event Ended'
                         : registrationStatus === 'none' && event.status?.toLowerCase() === 'paused'
                           ? 'Registration Paused'

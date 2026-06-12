@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, MapPin, Calendar, Bookmark, X, Search, ChevronDown, Sparkles, Filter, Rocket } from 'lucide-react'
+import { ArrowLeft, MapPin, Calendar, Bookmark, X, Search, ChevronDown, Filter, Rocket, Loader2, CheckCircle2 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useState, useEffect, useMemo } from 'react'
 import { Input } from '@/components/ui/input'
@@ -61,6 +61,8 @@ export default function ParticipantEvents() {
   const [userDepartment, setUserDepartment] = useState('')
   const [showJoinSuccess, setShowJoinSuccess] = useState(false)
   const [joiningEventId, setJoiningEventId] = useState<string | number | null>(null)
+  const [loadingJoinId, setLoadingJoinId] = useState<string | number | null>(null)
+  const [loadingUnregisterId, setLoadingUnregisterId] = useState<string | number | null>(null)
   const [registeredEvents, setRegisteredEvents] = useState<Map<string, string>>(new Map())
   const [showUnregisterSuccess, setShowUnregisterSuccess] = useState(false)
   const [unregisterEventId, setUnregisterEventId] = useState<string | number | null>(null)
@@ -378,6 +380,7 @@ export default function ParticipantEvents() {
       router.push('/auth/signin')
       return
     }
+    setLoadingJoinId(event.id)
     let firstName = 'Participant'
     let lastName = 'User'
     let affiliation = 'HCDC'
@@ -417,6 +420,8 @@ export default function ParticipantEvents() {
       })
     } catch (err) {
       alert('Failed to join event. Please try again.')
+    } finally {
+      setLoadingJoinId(null)
     }
   }
 
@@ -428,6 +433,7 @@ export default function ParticipantEvents() {
       router.push('/auth/signin')
       return
     }
+    setLoadingUnregisterId(event.id)
     try {
       const baseUrl = api.registrations().endsWith('/') ? api.registrations().slice(0, -1) : api.registrations()
       const regsUrl = `${baseUrl}/?event=${encodeURIComponent(eventId)}&email=${encodeURIComponent(userEmail)}`
@@ -453,6 +459,8 @@ export default function ParticipantEvents() {
       setShowUnregisterSuccess(true)
     } catch {
       alert('Failed to revoke registration. Please try again.')
+    } finally {
+      setLoadingUnregisterId(null)
     }
   }
 
@@ -723,19 +731,30 @@ export default function ParticipantEvents() {
                                   {isRegistered ? (
                                     <>
                                       <Button className="flex-1 bg-green-500 hover:bg-green-600 text-white border-0" disabled>
+                                        <CheckCircle2 className="w-4 h-4 mr-2" />
                                         Registered
                                       </Button>
-                                      <Button variant="outline" size="icon" onClick={(e) => { e.stopPropagation(); handleUnregisterEvent(event); }} className="border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-red-900/30 dark:hover:bg-red-900/20">
-                                        <X className="w-4 h-4" />
+                                      <Button
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={(e) => { e.stopPropagation(); handleUnregisterEvent(event); }}
+                                        disabled={loadingUnregisterId === event.id}
+                                        className="border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-red-900/30 dark:hover:bg-red-900/20"
+                                      >
+                                        {loadingUnregisterId === event.id
+                                          ? <Loader2 className="w-4 h-4 animate-spin" />
+                                          : <X className="w-4 h-4" />}
                                       </Button>
                                     </>
                                   ) : (
                                     <Button
                                       className={`flex-1 ${hasAccess ? 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white shadow-lg shadow-red-500/20' : 'bg-neutral-200 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-500 cursor-not-allowed border border-neutral-200 dark:border-neutral-700'}`}
                                       onClick={(e) => { e.stopPropagation(); if (hasAccess) handleJoinEvent(event); }}
-                                      disabled={!hasAccess}
+                                      disabled={!hasAccess || loadingJoinId === event.id}
                                     >
-                                      {hasAccess ? 'Join Event' : 'Restricted to Department'}
+                                      {loadingJoinId === event.id ? (
+                                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Joining...</>
+                                      ) : hasAccess ? 'Join Event' : 'Restricted to Department'}
                                     </Button>
                                   )}
                                 </div>

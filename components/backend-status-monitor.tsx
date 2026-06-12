@@ -150,9 +150,9 @@ export function BackendStatusMonitor() {
     <Dialog open={modalOpen && isBackendIssueStatus(status)} onOpenChange={setModalOpen}>
       <DialogContent
         showCloseButton={false}
-        className="overflow-hidden border-red-200/60 bg-gradient-to-b from-background to-red-50/30 p-0 dark:border-red-900/40 dark:to-red-950/20 sm:max-w-md"
+        className="border-red-200/60 bg-gradient-to-b from-background to-red-50/30 dark:border-red-900/40 dark:to-red-950/20 sm:max-w-md"
       >
-        <div className="relative px-6 pt-8 pb-2">
+        <div className="relative">
           <div className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full bg-primary/10 blur-3xl" />
           <DialogHeader className="space-y-4 text-left">
             <div className="flex items-start gap-4">
@@ -188,18 +188,29 @@ export function BackendStatusMonitor() {
           </div>
         </div>
 
-        <DialogFooter className="gap-2 border-t border-border/60 bg-muted/20 px-6 py-4 sm:justify-between">
+        <DialogFooter className="mt-2 gap-2 flex flex-col-reverse sm:flex-row sm:justify-between w-full">
+          <div className="flex flex-col-reverse sm:flex-row gap-2 w-full sm:w-auto">
+            <Button
+              type="button"
+              variant="ghost"
+              className="text-muted-foreground w-full sm:w-auto"
+              onClick={() => setModalOpen(false)}
+            >
+              Continue offline
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="gap-2 w-full sm:w-auto"
+              onClick={() => window.location.reload()}
+            >
+              <RefreshCw className="h-4 w-4" />
+              Refresh Page
+            </Button>
+          </div>
           <Button
             type="button"
-            variant="ghost"
-            className="text-muted-foreground"
-            onClick={() => setModalOpen(false)}
-          >
-            Continue offline
-          </Button>
-          <Button
-            type="button"
-            className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+            className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90 w-full sm:w-auto"
             disabled={checking}
             onClick={() => void runHealthCheck(true)}
           >

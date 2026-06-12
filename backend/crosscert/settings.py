@@ -191,7 +191,14 @@ if _vercel_url:
     _csrf_origin_candidates.append(
         _vercel_url if _vercel_url.startswith('http') else f'https://{_vercel_url}'
     )
+_env_csrf_origins = os.getenv('CSRF_TRUSTED_ORIGINS', '').strip()
+if _env_csrf_origins:
+    _csrf_origin_candidates.extend(
+        origin.strip().rstrip('/') for origin in _env_csrf_origins.split(',') if origin.strip()
+    )
 CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(origin for origin in _csrf_origin_candidates if origin))
+CSRF_FAILURE_VIEW = 'crosscert.views.csrf_failure'
+
 
 # Security Settings (Hardened for Production)
 # Allow cookies over HTTP in local development so CSRF/session auth works on localhost

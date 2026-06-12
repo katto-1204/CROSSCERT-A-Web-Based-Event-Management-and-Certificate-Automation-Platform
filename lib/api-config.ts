@@ -290,9 +290,11 @@ export async function apiRequest<T = any>(
     ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)
   ) {
     try {
-      const errorBody = await response.clone().json()
-      const detail = String(errorBody?.detail || '')
-      if (detail.toLowerCase().includes('csrf')) {
+      const responseText = await response.clone().text()
+      const isCsrfError = responseText.toLowerCase().includes('csrf') ||
+                          response.statusText.toLowerCase().includes('csrf')
+      if (isCsrfError) {
+        console.warn('[API] CSRF verification failed. Retrying with a fresh token...')
         if (typeof window !== 'undefined') {
           localStorage.removeItem('csrfToken')
         }
@@ -300,8 +302,8 @@ export async function apiRequest<T = any>(
         headers['X-CSRFToken'] = freshToken
         return apiRequest(url, { ...options, headers }, false)
       }
-    } catch {
-      // fall through to original response
+    } catch (err) {
+      console.error('[API] Error during CSRF retry:', err)
     }
   }
 
