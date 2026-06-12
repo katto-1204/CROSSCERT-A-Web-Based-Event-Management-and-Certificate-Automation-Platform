@@ -2,7 +2,8 @@
 
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { ArrowLeft, QrCode, BarChart3, Camera, X, CheckCircle2, AlertCircle, Scan, TrendingUp, Users, Zap, Calendar, Clock } from 'lucide-react'
+import { ArrowLeft, QrCode, BarChart3, Camera, X, CheckCircle2, AlertCircle, Scan, TrendingUp, Users, Zap, Calendar, Clock, Copy, Share2 } from 'lucide-react'
+import { QRCodeSVG } from 'qrcode.react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,6 +20,16 @@ type EventRecord = {
   date?: string
   start_time?: string
   end_time?: string
+}
+
+type SuccessPass = {
+  participantName: string
+  eventTitle: string
+  passCode: string
+  location?: string
+  checkedInAt?: string
+  action: 'check-in' | 'check-out'
+  alreadyPresent?: boolean
 }
 
 export default function AdminCheckIn() {
@@ -44,6 +55,9 @@ export default function AdminCheckIn() {
   const [errorModalMessage, setErrorModalMessage] = useState('')
   const scanIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const [showNotStartedModal, setShowNotStartedModal] = useState(false)
+  const [scanFlash, setScanFlash] = useState(false)
+  const [lastScannedAt, setLastScannedAt] = useState<Date | null>(null)
+  const [successPass, setSuccessPass] = useState<SuccessPass | null>(null)
 
   // -- Modal for Event Not Started --
   const NotStartedModal = () => (
@@ -198,11 +212,14 @@ export default function AdminCheckIn() {
   const handleCodeScanned = useCallback((code: string) => {
     if (isProcessingScan || showSuccess || showErrorModal || showNotStartedModal) return
     if (!selectedEvent) {
-      showError('Please select an event first')
+      showError('Please select an event first.')
       return
     }
     setScannedCode(code)
-    // Optional: Add a small beep or visual feedback here that code was captured
+    setScanFlash(true)
+    setLastScannedAt(new Date())
+    window.setTimeout(() => setScanFlash(false), 550)
+    if (navigator.vibrate) navigator.vibrate(40)
   }, [isProcessingScan, showSuccess, showErrorModal, showNotStartedModal, selectedEvent])
 
   const processCheckIn = async () => {
@@ -227,11 +244,11 @@ export default function AdminCheckIn() {
       const data = await res.json()
 
       if (!res.ok) {
-        handleApiError(res, data, 'check-in')
+        handleApiError(res, data, 'check-in', scannedCode.trim())
         return
       }
 
-      handleApiSuccess(data, 'check-in')
+      handleApiSuccess(data, 'check-in', scannedCode.trim())
     } catch (err) {
       showError('Network error during check-in.')
     } finally {
@@ -250,11 +267,11 @@ export default function AdminCheckIn() {
       const data = await res.json()
 
       if (!res.ok) {
-        handleApiError(res, data, 'check-out')
+        handleApiError(res, data, 'check-out', scannedCode.trim())
         return
       }
 
-      handleApiSuccess(data, 'check-out')
+      handleApiSuccess(data, 'check-out', scannedCode.trim())
     } catch (err) {
       showError('Network error during check-out.')
     } finally {
@@ -263,35 +280,48 @@ export default function AdminCheckIn() {
   }
 
   // Helper to handle API Success
-  const handleApiSuccess = (data: any, action: 'check-in' | 'check-out') => {
-    setParticipantName(`${data.participant_name ?? 'Participant'}`)
+  const showPassSuccess = (data: Record<string, unknown>, action: 'check-in' | 'check-out', code: string, alreadyPresent = false) => {
+    const name = String(data.participant_name ?? 'Guest')
+    const event = events.find((e) => e.id.toString() === selectedEvent)
+    setParticipantName(name)
+    setSuccessPass({
+      participantName: name,
+      eventTitle: String(data.event_title ?? event?.title ?? 'Event'),
+      passCode: code,
+      location: event?.date ? `${event.date}` : undefined,
+      checkedInAt: data.checked_in_at
+        ? new Date(String(data.checked_in_at)).toLocaleString()
+        : new Date().toLocaleString(),
+      action,
+      alreadyPresent,
+    })
     fetchEventStats()
     setShowSuccess(true)
     setLastAction(action)
-    toast({
-      title: `${action === 'check-in' ? 'Check-in' : 'Check-out'} Successful`,
-      description: `${data.participant_name ?? 'Participant'} has been ${action === 'check-in' ? 'checked in' : 'checked out'}.`,
-    })
-
-    // Clear code after success
     setScannedCode('')
     setTimeout(() => {
       setShowSuccess(false)
-    }, 2000)
+      setSuccessPass(null)
+    }, 6000)
   }
 
-  // Helper to handle API Errors
-  const handleApiError = (res: any, data: any, action: 'check-in' | 'check-out') => {
-    if (res.status === 404 || data.message?.toLowerCase().includes('not found')) {
+  const handleApiSuccess = (data: Record<string, unknown>, action: 'check-in' | 'check-out', code: string) => {
+    const already = Boolean(data.already_checked_in || data.already_checked_out)
+    showPassSuccess(data, action, code, already)
+    toast({
+      title: already
+        ? (action === 'check-in' ? 'Already checked in' : 'Already checked out')
+        : `${action === 'check-in' ? 'Check-in' : 'Check-out'} successful`,
+      description: `${data.participant_name ?? 'Guest'}${already ? ' was already on the list.' : ` has been ${action === 'check-in' ? 'checked in' : 'checked out'}.`}`,
+    })
+  }
+
+  const handleApiError = (res: Response, data: Record<string, unknown>, action: 'check-in' | 'check-out', code: string) => {
+    if (res.status === 404 || String(data.message ?? '').toLowerCase().includes('not found')) {
       showError("Participant ticket not found.")
       return
     }
-    if (data.message?.includes('Already checked in') || data.message?.includes('Already checked out')) {
-      toast({ title: "Notice", description: data.message, className: "bg-yellow-50 text-yellow-800 border-yellow-200" })
-      setScannedCode('') // Clear code to prevent loop
-      return
-    }
-    showError(data.error || data.message || `Unable to ${action} participant.`)
+    showError(String(data.error ?? data.message ?? `Unable to ${action} participant.`))
   }
 
   const startCamera = async () => {
@@ -431,52 +461,105 @@ export default function AdminCheckIn() {
   }
 
   const attendanceRate = totalExpected > 0 ? Math.min(100, Math.round((checkedInCount / totalExpected) * 100)) : 0
+  const selectedEventData = events.find((e) => e.id.toString() === selectedEvent)
+  const isLiveEvent = selectedEventData?.status?.toLowerCase() === 'live'
+  const wizardStep = !selectedEvent ? 1 : cameraActive ? 2 : scannedCode ? 3 : 2
 
   return (
-    <div className="min-h-screen bg-neutral-50/50 dark:bg-neutral-950 p-6 space-y-8 max-w-[1600px] mx-auto animate-in fade-in duration-500">
-      {/* Friendly Header */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-rose-50 via-white to-amber-50/60 dark:from-neutral-900 dark:via-neutral-900 dark:to-rose-950/30 border border-rose-100 dark:border-neutral-800 p-8 shadow-sm">
-        <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-bl from-rose-200/40 via-transparent to-transparent dark:from-rose-900/20 rounded-full blur-3xl -mr-24 -mt-24" />
-        <div className="relative">
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors mb-5 group"
-          >
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            <span className="font-medium">Go back</span>
-          </button>
-          <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-400 to-red-500 flex items-center justify-center shadow-lg shadow-rose-400/30 shrink-0">
-              <Users className="w-7 h-7 text-white" />
+    <div className="min-h-screen bg-gradient-to-b from-rose-50/90 via-white to-neutral-50 dark:from-[#0a0a0b] dark:via-[#0a0a0b] dark:to-neutral-950 p-4 md:p-6 space-y-6 max-w-[1600px] mx-auto animate-in fade-in duration-500">
+      {/* Ambient background */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-rose-300/25 dark:bg-rose-600/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-violet-300/20 dark:bg-violet-600/8 rounded-full blur-[100px]" />
+      </div>
+
+      {/* Top bar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-2 text-neutral-600 hover:text-rose-600 dark:text-neutral-400 dark:hover:text-white transition-colors group w-fit"
+        >
+          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+          <span className="font-medium text-sm">Back</span>
+        </button>
+
+        {/* Step pills */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {[
+            { n: 1, label: 'Pick event' },
+            { n: 2, label: 'Scan pass' },
+            { n: 3, label: 'Check in' },
+          ].map((step) => (
+            <div
+              key={step.n}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 ${
+                wizardStep >= step.n
+                  ? 'bg-rose-100 text-rose-700 border border-rose-200 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/40'
+                  : 'bg-neutral-100 text-neutral-500 border border-neutral-200 dark:bg-white/5 dark:text-neutral-500 dark:border-white/10'
+              }`}
+            >
+              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
+                wizardStep >= step.n
+                  ? 'bg-rose-500 text-white'
+                  : 'bg-neutral-200 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-500'
+              }`}>
+                {wizardStep > step.n ? '✓' : step.n}
+              </span>
+              {step.label}
             </div>
-            <div>
-              <h1 className="text-3xl md:text-4xl font-bold text-neutral-900 dark:text-white tracking-tight">Guest Check-In</h1>
-              <p className="text-neutral-600 dark:text-neutral-400 text-base md:text-lg mt-1 max-w-xl">
-                Welcome your attendees — just point the camera at their event pass.
-              </p>
-            </div>
-          </div>
+          ))}
         </div>
+      </div>
+
+      <div className="text-center md:text-left space-y-1">
+        <h1 className="text-3xl md:text-5xl font-extrabold text-neutral-900 dark:text-white tracking-tight font-[family-name:var(--font-display)]">
+          Guest Check-In
+        </h1>
+        <p className="text-neutral-600 dark:text-neutral-400 text-sm md:text-base max-w-lg">
+          Point at the guest&apos;s pass — we&apos;ll catch the code instantly.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Scanner Section */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Event Selector */}
-          <Card className="p-6 border border-neutral-200 dark:border-neutral-800 bg-white/50 dark:bg-neutral-900/50 backdrop-blur-sm shadow-sm">
-            <Label className="text-neutral-900 dark:text-white font-semibold text-lg mb-3 flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-red-500" />
-              Select Event
+        <div className="lg:col-span-2 space-y-5">
+          {/* Event Selector — compact chips for live events */}
+          <Card className="p-5 border border-neutral-200 bg-white/90 dark:border-white/10 dark:bg-white/5 backdrop-blur-xl shadow-lg dark:shadow-2xl rounded-3xl">
+            <Label className="text-neutral-900 dark:text-white font-semibold text-base mb-3 flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-rose-500 dark:text-rose-400" />
+              Which event?
             </Label>
             {eventsError && (
-              <p className="text-sm text-red-600 dark:text-red-400 mb-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">{eventsError}</p>
+              <p className="text-sm text-red-600 dark:text-red-400 mb-3 p-3 bg-red-50 dark:bg-red-500/10 rounded-xl border border-red-200 dark:border-red-500/20">{eventsError}</p>
             )}
 
-            <div className="grid gap-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide mb-3">
+              {events.filter(e => ['live', 'completed', 'concluded'].includes(e.status?.toLowerCase() || '')).map((event) => {
+                const isSelected = selectedEvent === event.id.toString()
+                const isLive = event.status?.toLowerCase() === 'live'
+                return (
+                  <button
+                    key={event.id}
+                    type="button"
+                    onClick={() => setSelectedEvent(event.id.toString())}
+                    className={`shrink-0 px-4 py-2.5 rounded-2xl text-sm font-semibold transition-all duration-200 border ${
+                      isSelected
+                        ? 'bg-rose-500 text-white border-rose-400 shadow-lg shadow-rose-500/30 scale-105'
+                        : 'bg-neutral-50 text-neutral-700 border-neutral-200 hover:border-rose-300 hover:text-rose-700 dark:bg-white/5 dark:text-neutral-300 dark:border-white/10 dark:hover:border-rose-500/40 dark:hover:text-white'
+                    }`}
+                  >
+                    {isLive && <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 mr-2 animate-pulse" />}
+                    {event.title}
+                  </button>
+                )
+              })}
+            </div>
+
+            <div className="grid gap-2 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
               {eventsLoading ? (
-                <div className="text-center py-8 text-neutral-500">Loading events...</div>
+                <div className="text-center py-6 text-neutral-500">Loading events…</div>
               ) : events.length === 0 ? (
-                <div className="text-center py-8 text-neutral-500">No events found.</div>
+                <div className="text-center py-6 text-neutral-500">No events found.</div>
               ) : (
                 events.map((event) => {
                   const isSelected = selectedEvent === event.id.toString()
@@ -487,63 +570,31 @@ export default function AdminCheckIn() {
                     <div
                       key={event.id}
                       onClick={() => {
-                        if (isLive || isCompleted) {
-                          setSelectedEvent(event.id.toString())
-                        } else {
-                          setShowNotStartedModal(true)
-                        }
+                        if (isLive || isCompleted) setSelectedEvent(event.id.toString())
+                        else setShowNotStartedModal(true)
                       }}
-                      className={`
-                        group relative p-4 rounded-xl border-2 transition-all cursor-pointer flex items-center justify-between
-                        ${isSelected
-                          ? 'border-red-500 bg-red-50 dark:bg-red-900/10 shadow-md'
-                          : 'border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:border-red-300 dark:hover:border-red-700'
-                        }
-                      `}
+                      className={`group p-3 rounded-2xl border transition-all cursor-pointer flex items-center gap-3 ${
+                        isSelected
+                          ? 'border-rose-300 bg-rose-50 dark:border-rose-500/60 dark:bg-rose-500/10'
+                          : 'border-neutral-200 bg-neutral-50/50 hover:border-neutral-300 dark:border-white/8 dark:bg-white/3 dark:hover:border-white/20'
+                      }`}
                     >
-                      <div className="flex items-center gap-4">
-                        <div className={`
-                          w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg
-                          ${isLive
-                            ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
-                            : isCompleted
-                              ? 'bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400'
-                              : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
-                          }
-                        `}>
-                          {event.title?.charAt(0) || 'E'}
-                        </div>
-                        <div>
-                          <h3 className={`font-bold ${isSelected ? 'text-red-900 dark:text-red-100' : 'text-neutral-900 dark:text-white'}`}>
-                            {event.title}
-                          </h3>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className={`
-                              text-xs font-bold px-2 py-0.5 rounded-full uppercase tracking-wide
-                              ${isLive
-                                ? 'bg-red-600 text-white animate-pulse'
-                                : isCompleted
-                                  ? 'bg-neutral-200 text-neutral-600 dark:bg-neutral-700 dark:text-neutral-400'
-                                  : 'bg-blue-600 text-white'
-                              }
-                            `}>
-                              {isLive ? 'LIVE' : isCompleted ? 'ENDED' : 'UPCOMING'}
-                            </span>
-                            {isSelected && <span className="text-xs font-medium text-red-600 dark:text-red-400 flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Selected</span>}
-                          </div>
-                        </div>
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm ${
+                        isLive
+                          ? 'bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-300'
+                          : isCompleted
+                            ? 'bg-neutral-200 text-neutral-600 dark:bg-neutral-700 dark:text-neutral-400'
+                            : 'bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-300'
+                      }`}>
+                        {event.title?.charAt(0) || 'E'}
                       </div>
-
-                      {/* Interaction Hint */}
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                        {isLive || isCompleted ? (
-                          <Button size="sm" variant={isSelected ? "default" : "outline"} className={isSelected ? 'bg-red-600 hover:bg-red-700' : ''}>
-                            {isSelected ? 'Scanning' : 'Select'}
-                          </Button>
-                        ) : (
-                          <span className="text-xs text-neutral-400 font-medium">Not Started</span>
-                        )}
+                      <div className="flex-1 min-w-0">
+                        <p className={`font-semibold truncate text-sm ${isSelected ? 'text-rose-900 dark:text-white' : 'text-neutral-800 dark:text-neutral-300'}`}>{event.title}</p>
+                        <p className="text-[10px] uppercase tracking-wider text-neutral-500 mt-0.5">
+                          {isLive ? '● Live now' : isCompleted ? 'Ended' : 'Upcoming'}
+                        </p>
                       </div>
+                      {isSelected && <CheckCircle2 className="w-4 h-4 text-rose-500 dark:text-rose-400 shrink-0" />}
                     </div>
                   )
                 })
@@ -551,117 +602,123 @@ export default function AdminCheckIn() {
             </div>
           </Card>
 
-          {/* Camera / pass scanner */}
-          <Card className="p-6 border border-rose-100 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm space-y-4 rounded-3xl">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-11 h-11 rounded-2xl bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center">
-                <Camera className="w-5 h-5 text-rose-600 dark:text-rose-400" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-neutral-900 dark:text-white">Scan their pass</h2>
-                <p className="text-sm text-neutral-500 dark:text-neutral-400">Hold the phone steady — it finds the code automatically</p>
-              </div>
-            </div>
-
+          {/* Scanner — hero viewport */}
+          <Card className="overflow-hidden border border-neutral-200 bg-white dark:border-white/10 dark:bg-white/5 backdrop-blur-xl shadow-lg dark:shadow-2xl rounded-3xl p-0">
             {cameraActive ? (
-              <div className="space-y-4">
-                <div className="relative w-full overflow-hidden rounded-3xl bg-neutral-900 shadow-xl" style={{ minHeight: '340px', maxHeight: '480px' }}>
+              <div className="relative">
+                <div className="relative w-full overflow-hidden bg-black" style={{ minHeight: '380px', maxHeight: '520px' }}>
                   <video
                     ref={videoRef}
                     autoPlay
                     playsInline
                     muted
-                    className="w-full h-full object-cover"
-                    style={{
-                      display: 'block',
-                      width: '100%',
-                      minHeight: '340px',
-                      maxHeight: '480px',
-                    }}
+                    className="w-full h-full object-cover scale-105"
+                    style={{ minHeight: '380px', maxHeight: '520px' }}
                   />
 
-                  {/* Soft warm overlay — no grid or reticle */}
-                  <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/50 via-transparent to-black/20" />
-
-                  {/* Simple rounded frame */}
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-8">
-                    <div className="relative h-[min(58vw,260px)] w-[min(58vw,260px)] rounded-3xl border-[3px] border-white/70 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]" />
-                  </div>
-
-                  {selectedEvent && (
-                    <div className="absolute top-4 left-4 right-4">
-                      <div className="inline-flex items-center gap-2 rounded-full bg-white/90 dark:bg-neutral-900/90 px-4 py-2 text-sm font-medium text-neutral-800 dark:text-white shadow-md backdrop-blur-sm max-w-full">
-                        <Calendar className="h-4 w-4 text-rose-500 shrink-0" />
-                        <span className="truncate">
-                          {events.find((e) => e.id.toString() === selectedEvent)?.title || 'Selected event'}
-                        </span>
-                      </div>
-                    </div>
+                  {scanFlash && (
+                    <div className="absolute inset-0 bg-emerald-400/40 scan-flash-overlay pointer-events-none z-20" />
                   )}
 
-                  <div className="absolute bottom-5 left-1/2 -translate-x-1/2 w-[90%] max-w-sm">
-                    <div className="rounded-2xl bg-white/95 dark:bg-neutral-900/95 px-4 py-3 text-center text-sm text-neutral-700 dark:text-neutral-200 shadow-lg backdrop-blur-sm">
-                      Ask guests to open their <span className="font-semibold text-rose-600 dark:text-rose-400">Wallet</span> or event ticket
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30 pointer-events-none" />
+
+                  {/* Animated scan viewport */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-10">
+                    <div className="relative scanner-pulse-frame">
+                      {/* Rotating gradient ring */}
+                      <div className="absolute -inset-3 rounded-[2rem] opacity-60 scanner-ring bg-[conic-gradient(from_0deg,transparent,rgba(251,113,133,0.8),transparent,rgba(167,139,250,0.6),transparent)]" />
+                      <div className="relative h-[min(55vw,270px)] w-[min(55vw,270px)] rounded-[1.75rem] border-2 border-white/80 shadow-[0_0_0_9999px_rgba(0,0,0,0.45)] overflow-hidden">
+                        {/* Scan beam */}
+                        <div className="absolute inset-x-4 h-[2px] bg-gradient-to-r from-transparent via-rose-400 to-transparent shadow-[0_0_20px_rgba(251,113,133,0.9)] scanner-beam" />
+                        {/* Corner accents */}
+                        <span className="absolute left-3 top-3 h-8 w-8 border-l-2 border-t-2 border-rose-400 rounded-tl-lg scanner-corner-glow" />
+                        <span className="absolute right-3 top-3 h-8 w-8 border-r-2 border-t-2 border-rose-400 rounded-tr-lg scanner-corner-glow" />
+                        <span className="absolute bottom-3 left-3 h-8 w-8 border-b-2 border-l-2 border-rose-400 rounded-bl-lg scanner-corner-glow" />
+                        <span className="absolute bottom-3 right-3 h-8 w-8 border-b-2 border-r-2 border-rose-400 rounded-br-lg scanner-corner-glow" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Top chips */}
+                  <div className="absolute top-4 left-4 right-4 flex items-center justify-between gap-2 z-10">
+                    <div className="inline-flex items-center gap-2 rounded-full bg-black/50 backdrop-blur-md px-3 py-1.5 text-xs font-medium text-white border border-white/10 max-w-[70%]">
+                      <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse shrink-0" />
+                      <span className="truncate">{selectedEventData?.title || 'Event'}</span>
+                    </div>
+                    {scannedCode && (
+                      <div className="shrink-0 rounded-full bg-emerald-500/90 px-3 py-1.5 text-[11px] font-bold text-white animate-in zoom-in duration-200">
+                        Code found!
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="absolute bottom-5 left-1/2 -translate-x-1/2 w-[88%] max-w-sm z-10">
+                    <div className="rounded-2xl bg-black/60 backdrop-blur-xl px-4 py-3 text-center text-sm text-white/90 border border-white/10">
+                      {scannedCode ? (
+                        <span className="text-emerald-300 font-semibold">Ready — tap check in below</span>
+                      ) : (
+                        <>Hold steady over the guest&apos;s <span className="text-rose-300 font-semibold">Wallet</span> pass</>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    onClick={stopCamera}
-                    variant="outline"
-                    className="w-full rounded-xl border-rose-200 dark:border-neutral-700 hover:bg-rose-50 dark:hover:bg-neutral-800"
-                  >
-                    <X className="w-4 h-4 mr-2" />
-                    Close camera
+                <div className="p-4 grid grid-cols-2 gap-3 bg-neutral-100 dark:bg-black/40 border-t border-neutral-200 dark:border-white/10">
+                  <Button onClick={stopCamera} variant="outline" className="rounded-xl border-neutral-300 bg-white text-neutral-800 hover:bg-neutral-50 dark:border-white/20 dark:bg-white/5 dark:text-white dark:hover:bg-white/10">
+                    <X className="w-4 h-4 mr-2" /> Close
                   </Button>
-                  <Button
-                    variant="secondary"
-                    className="w-full rounded-xl"
-                    onClick={() => setScannedCode('')}
-                    disabled={!scannedCode}
-                  >
-                    Start over
+                  <Button variant="secondary" className="rounded-xl" onClick={() => setScannedCode('')} disabled={!scannedCode}>
+                    Rescan
                   </Button>
                 </div>
                 <canvas ref={canvasRef} className="hidden" />
               </div>
             ) : (
-              <div className="relative flex flex-col items-center justify-center overflow-hidden rounded-3xl border-2 border-dashed border-rose-200 dark:border-neutral-700 bg-gradient-to-b from-rose-50/50 to-white dark:from-neutral-900 dark:to-neutral-950 px-6 py-14 text-center" style={{ minHeight: '340px' }}>
-                <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-rose-100 to-amber-100 dark:from-rose-900/40 dark:to-amber-900/20">
-                  <QrCode className="h-11 w-11 text-rose-500" />
+              <div className="relative flex flex-col items-center justify-center px-6 py-16 text-center bg-gradient-to-b from-rose-50/50 to-white dark:from-transparent dark:to-transparent" style={{ minHeight: '380px' }}>
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(251,113,133,0.15),transparent_70%)] dark:bg-[radial-gradient(ellipse_at_center,rgba(251,113,133,0.12),transparent_70%)]" />
+                <div className="relative mb-8 float-soft">
+                  <div className="w-28 h-28 rounded-[2rem] bg-gradient-to-br from-rose-500 to-violet-600 flex items-center justify-center shadow-2xl shadow-rose-500/30 dark:shadow-rose-500/40">
+                    <QrCode className="w-14 h-14 text-white" />
+                  </div>
+                  <div className="absolute -inset-4 rounded-[2.5rem] border border-rose-300/50 dark:border-rose-500/30 scanner-pulse-frame" />
                 </div>
-                <h3 className="text-2xl font-bold text-neutral-900 dark:text-white mb-2">Ready when you are</h3>
-                <p className="text-neutral-600 dark:text-neutral-400 text-sm mb-8 max-w-xs leading-relaxed">
-                  Pick an event above, then open the camera. Guests show the QR on their phone — you&apos;re all set.
+                <h3 className="relative text-2xl font-bold text-neutral-900 dark:text-white mb-2">Ready to scan</h3>
+                <p className="relative text-neutral-600 dark:text-neutral-400 text-sm mb-8 max-w-xs leading-relaxed">
+                  {selectedEvent ? 'Open the camera and point at the guest pass.' : 'Choose an event above first.'}
                 </p>
                 <Button
                   onClick={startCamera}
-                  className="bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white min-w-[220px] h-12 rounded-xl shadow-lg shadow-rose-500/25 text-base font-semibold"
                   disabled={!selectedEvent}
+                  className="relative bg-gradient-to-r from-rose-500 via-red-500 to-rose-600 hover:opacity-90 text-white min-w-[240px] h-14 rounded-2xl text-base font-bold shadow-xl shadow-rose-600/40 disabled:opacity-40"
                 >
                   <Camera className="w-5 h-5 mr-2" />
                   Open camera
                 </Button>
-                {!selectedEvent && (
-                  <p className="mt-4 text-xs text-neutral-500">Select an event first</p>
-                )}
               </div>
             )}
 
-            {/* Check-in actions */}
-            <div className="pt-4 border-t border-rose-100 dark:border-neutral-800 space-y-4">
-              <Input
-                placeholder="Pass code appears here after scanning…"
-                value={scannedCode}
-                onChange={(e) => setScannedCode(e.target.value)}
-                className="bg-rose-50/50 dark:bg-neutral-900 text-center text-base rounded-xl border-rose-100 dark:border-neutral-800"
-              />
+            {/* Actions */}
+            <div className="p-5 space-y-4 border-t border-neutral-200 bg-neutral-50/80 dark:border-white/10 dark:bg-white/3">
+              <div className="relative">
+                <Input
+                  placeholder={scannedCode ? 'Pass captured ✓' : 'Waiting for scan…'}
+                  value={scannedCode}
+                  onChange={(e) => setScannedCode(e.target.value)}
+                  className={`bg-white dark:bg-black/30 text-center text-base rounded-2xl border-neutral-200 text-neutral-900 placeholder:text-neutral-400 h-14 dark:border-white/10 dark:text-white dark:placeholder:text-neutral-500 ${
+                    scannedCode ? 'border-emerald-400 ring-1 ring-emerald-400/30 dark:border-emerald-500/50 dark:ring-emerald-500/30' : ''
+                  }`}
+                />
+                {lastScannedAt && scannedCode && (
+                  <p className="text-[10px] text-neutral-500 text-center mt-1.5">
+                    Scanned at {lastScannedAt.toLocaleTimeString()}
+                  </p>
+                )}
+              </div>
 
-              {selectedEvent && events.find(e => e.id.toString() === selectedEvent)?.status?.toLowerCase() === 'live' && (
+              {selectedEvent && isLiveEvent && (
                 <Button
                   onClick={processCheckIn}
-                  className="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-bold text-lg py-6 rounded-2xl shadow-lg shadow-green-500/20"
+                  className="w-full bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-white font-bold text-lg py-7 rounded-2xl shadow-lg shadow-emerald-500/25 transition-transform hover:scale-[1.01] active:scale-[0.99]"
                   disabled={!scannedCode}
                 >
                   <CheckCircle2 className="w-6 h-6 mr-2" />
@@ -669,10 +726,10 @@ export default function AdminCheckIn() {
                 </Button>
               )}
 
-              {selectedEvent && (['completed', 'concluded', 'paused'].includes(events.find(e => e.id.toString() === selectedEvent)?.status?.toLowerCase() || '')) && (
+              {selectedEvent && (['completed', 'concluded', 'paused'].includes(selectedEventData?.status?.toLowerCase() || '')) && (
                 <Button
                   onClick={processCheckOut}
-                  className="w-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white font-bold text-lg py-6 rounded-2xl shadow-lg shadow-blue-500/20"
+                  className="w-full bg-gradient-to-r from-sky-500 to-blue-500 hover:from-sky-400 hover:to-blue-400 text-white font-bold text-lg py-7 rounded-2xl shadow-lg shadow-sky-500/25"
                   disabled={!scannedCode}
                 >
                   <CheckCircle2 className="w-6 h-6 mr-2" />
@@ -683,67 +740,41 @@ export default function AdminCheckIn() {
           </Card>
         </div>
 
-        {/* Stats Panel (Right Side) */}
-        <div className="space-y-6">
-          <Card className="p-6 border border-neutral-200 dark:border-neutral-800 bg-white/50 dark:bg-neutral-900/50 backdrop-blur-sm shadow-sm h-full">
-            <h2 className="text-xl font-bold text-neutral-900 dark:text-white mb-6 flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-rose-500" />
-              Today at a glance
+        {/* Stats Panel */}
+        <div className="space-y-5">
+          <Card className="p-6 border border-neutral-200 bg-white/90 dark:border-white/10 dark:bg-white/5 backdrop-blur-xl shadow-lg dark:shadow-2xl rounded-3xl h-full">
+            <h2 className="text-lg font-bold text-neutral-900 dark:text-white mb-5 flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-rose-500 dark:text-rose-400" />
+              Live pulse
             </h2>
 
-            <div className="space-y-4">
-              {/* Checked In */}
-              <div className="relative overflow-hidden p-5 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border border-green-200 dark:border-green-800">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/10 rounded-full blur-2xl -mr-12 -mt-12" />
-                <div className="relative">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Users className="w-4 h-4 text-green-600 dark:text-green-400" />
-                    <p className="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide">Checked In</p>
-                  </div>
-                  <p className="text-4xl font-bold text-green-700 dark:text-green-500">{checkedInCount}</p>
+            <div className="space-y-3">
+              <div className="relative overflow-hidden p-5 rounded-2xl bg-gradient-to-br from-emerald-50 to-green-100 border border-emerald-200 dark:from-emerald-500/20 dark:to-green-600/10 dark:border-emerald-500/20">
+                <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider mb-1">Checked in</p>
+                <p className="text-5xl font-extrabold text-emerald-800 dark:text-white tabular-nums">{checkedInCount}</p>
+              </div>
+
+              <div className="relative overflow-hidden p-5 rounded-2xl bg-gradient-to-br from-sky-50 to-blue-100 border border-sky-200 dark:from-sky-500/20 dark:to-blue-600/10 dark:border-sky-500/20">
+                <p className="text-xs font-semibold text-sky-700 dark:text-sky-400 uppercase tracking-wider mb-1">Checked out</p>
+                <p className="text-4xl font-extrabold text-sky-800 dark:text-white tabular-nums">{checkedOutCount}</p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200 flex justify-between items-center dark:bg-white/5 dark:border-white/10">
+                <div>
+                  <p className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider">Expected</p>
+                  <p className="text-2xl font-bold text-neutral-900 dark:text-white">{totalExpected}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider">Attendance</p>
+                  <p className="text-2xl font-bold text-violet-600 dark:text-violet-300">{attendanceRate}%</p>
                 </div>
               </div>
 
-              {/* Checked Out */}
-              <div className="relative overflow-hidden p-5 rounded-xl bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 border border-blue-200 dark:border-blue-800">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl -mr-12 -mt-12" />
-                <div className="relative">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                    <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">Checked Out</p>
-                  </div>
-                  <p className="text-4xl font-bold text-blue-700 dark:text-blue-500">{checkedOutCount}</p>
-                </div>
-              </div>
-
-              {/* Total Expected */}
-              <div className="p-5 rounded-xl bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700">
-                <div className="flex items-center gap-2 mb-2">
-                  <Users className="w-4 h-4 text-neutral-500" />
-                  <p className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Total Expected</p>
-                </div>
-                <p className="text-2xl font-bold text-neutral-900 dark:text-white">{totalExpected}</p>
-              </div>
-
-              {/* Attendance Rate */}
-              <div className="p-5 rounded-xl bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-950/30 dark:to-violet-950/30 border border-purple-200 dark:border-purple-800">
-                <div className="flex items-center gap-2 mb-2">
-                  <TrendingUp className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                  <p className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wide">Attendance Rate</p>
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <p className="text-3xl font-bold text-purple-700 dark:text-purple-500">{attendanceRate}%</p>
-                  {attendanceRate > 0 && (
-                    <div className="flex-1">
-                      <div className="h-2 bg-purple-200 dark:bg-purple-900/30 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-purple-600 to-violet-600 rounded-full transition-all duration-500"
-                          style={{ width: `${attendanceRate}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
+              <div className="h-2 bg-neutral-200 dark:bg-white/10 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-rose-500 to-violet-500 rounded-full transition-all duration-700 ease-out"
+                  style={{ width: `${attendanceRate}%` }}
+                />
               </div>
             </div>
           </Card>
@@ -766,24 +797,108 @@ export default function AdminCheckIn() {
       {/* Modals */}
       <NotStartedModal />
 
-      {/* Success Modal */}
-      {showSuccess && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
-          <div className="rounded-3xl p-8 bg-white dark:bg-neutral-900 w-full max-w-sm mx-4 shadow-2xl border border-neutral-200 dark:border-neutral-800 text-center scale-100 animate-in zoom-in-95 duration-300">
-            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${lastAction === 'check-out' ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-green-100 dark:bg-green-900/30'
-              }`}>
-              <CheckCircle2 className={`w-10 h-10 ${lastAction === 'check-out' ? 'text-blue-600 dark:text-blue-400' : 'text-green-600 dark:text-green-400'
-                }`} />
+      {/* Success Modal — wallet-style pass card */}
+      {showSuccess && successPass && (
+        <div
+          className="fixed inset-0 bg-blue-900/40 dark:bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-200"
+          onClick={() => { setShowSuccess(false); setSuccessPass(null) }}
+        >
+          <div
+            className="w-full max-w-md animate-in zoom-in-95 duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="rounded-[2rem] bg-white dark:bg-neutral-900 shadow-2xl overflow-hidden border border-neutral-100 dark:border-neutral-800">
+              {/* Card header */}
+              <div className="flex items-center justify-between px-6 pt-6 pb-2">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400">
+                    {successPass.action === 'check-in' ? 'Event Pass' : 'Check-Out Pass'}
+                  </p>
+                  <h3 className="text-xl font-bold text-neutral-900 dark:text-white mt-0.5">
+                    {successPass.alreadyPresent ? 'Already verified' : 'Verified ✓'}
+                  </h3>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const text = `${successPass.participantName}\n${successPass.eventTitle}\n${successPass.passCode}`
+                      if (navigator.share) {
+                        try { await navigator.share({ title: 'Event Pass', text }) } catch { /* cancelled */ }
+                      } else {
+                        await navigator.clipboard.writeText(text)
+                        toast({ title: 'Copied', description: 'Pass details copied.' })
+                      }
+                    }}
+                    className="w-10 h-10 rounded-full bg-sky-100 dark:bg-sky-900/40 flex items-center justify-center text-sky-600 dark:text-sky-400 hover:bg-sky-200 dark:hover:bg-sky-900/60 transition-colors"
+                    aria-label="Share pass"
+                  >
+                    <Share2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(successPass.passCode)
+                      toast({ title: 'Copied', description: 'Pass code copied.' })
+                    }}
+                    className="w-10 h-10 rounded-full bg-sky-100 dark:bg-sky-900/40 flex items-center justify-center text-sky-600 dark:text-sky-400 hover:bg-sky-200 dark:hover:bg-sky-900/60 transition-colors"
+                    aria-label="Copy pass code"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Card body — details + QR */}
+              <div className="flex gap-4 px-6 py-4">
+                <div className="flex-1 space-y-4 min-w-0">
+                  <div>
+                    <p className="text-[11px] font-medium text-neutral-400 uppercase tracking-wide">Guest name</p>
+                    <p className="text-lg font-bold text-neutral-900 dark:text-white truncate">{successPass.participantName}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-medium text-neutral-400 uppercase tracking-wide">Event</p>
+                    <p className="text-base font-semibold text-neutral-800 dark:text-neutral-200 line-clamp-2">{successPass.eventTitle}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-medium text-neutral-400 uppercase tracking-wide">Pass ID</p>
+                    <p className="text-sm font-mono font-bold text-neutral-900 dark:text-white break-all">{successPass.passCode}</p>
+                  </div>
+                  {successPass.checkedInAt && (
+                    <div>
+                      <p className="text-[11px] font-medium text-neutral-400 uppercase tracking-wide">
+                        {successPass.action === 'check-in' ? 'Checked in' : 'Checked out'}
+                      </p>
+                      <p className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">{successPass.checkedInAt}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="shrink-0 flex flex-col items-center gap-2">
+                  <div className="p-2.5 rounded-2xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-100 dark:border-neutral-700 shadow-inner">
+                    <QRCodeSVG value={successPass.passCode} size={108} level="M" includeMargin={false} />
+                  </div>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                    successPass.action === 'check-in'
+                      ? successPass.alreadyPresent
+                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                        : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                      : 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300'
+                  }`}>
+                    {successPass.alreadyPresent ? 'Duplicate scan' : successPass.action === 'check-in' ? 'Checked in' : 'Checked out'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="px-6 pb-6">
+                <Button
+                  className="w-full rounded-2xl py-6 bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-100 text-white dark:text-neutral-900 font-bold"
+                  onClick={() => { setShowSuccess(false); setSuccessPass(null) }}
+                >
+                  Done — scan next guest
+                </Button>
+              </div>
             </div>
-            <h3 className="text-2xl font-bold text-neutral-900 dark:text-white mb-2">
-              {lastAction === 'check-out' ? 'Check-Out' : 'Check-In'} Complete
-            </h3>
-            <p className="text-lg text-neutral-600 dark:text-neutral-300 font-medium mb-1">
-              {participantName}
-            </p>
-            <p className="text-sm text-neutral-400 dark:text-neutral-500">
-              Successfully processing...
-            </p>
           </div>
         </div>
       )}

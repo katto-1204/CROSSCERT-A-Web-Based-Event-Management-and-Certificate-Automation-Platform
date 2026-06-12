@@ -9,7 +9,7 @@ from events.views import EventViewSet, EventRegistrationViewSet, CheckInViewSet,
 from participants.views import ParticipantViewSet, EvaluationViewSet
 from participants.bookmark_views import BookmarkViewSet
 from certificates.views import CertificateViewSet, QRCodeViewSet
-from auth_endpoints import login_endpoint, logout_endpoint, csrf_token_endpoint, current_user_endpoint, forgot_password_endpoint, verify_otp_endpoint, reset_password_endpoint
+from auth_endpoints import login_endpoint, logout_endpoint, csrf_token_endpoint, current_user_endpoint, forgot_password_endpoint, verify_otp_endpoint, reset_password_endpoint, health_endpoint
 
 # General API router for public/participant endpoints
 api_router = DefaultRouter()
@@ -32,6 +32,8 @@ admin_router.register(r'evaluations', EvaluationViewSet, basename='admin-evaluat
 admin_router.register(r'certificates', CertificateViewSet, basename='admin-certificate')
 
 urlpatterns = [
+    path('api/health/', health_endpoint, name='api_health'),
+
     # Expose JSON API auth endpoints at /api/auth/ and /api/admin/auth/
     # (Keep these before the admin path so they return JSON and are not redirected to HTML)
     path('api/auth/login/', login_endpoint, name='api_login'),

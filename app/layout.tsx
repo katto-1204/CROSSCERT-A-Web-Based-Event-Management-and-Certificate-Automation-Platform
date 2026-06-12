@@ -1,5 +1,5 @@
 import { Geist, Geist_Mono } from 'next/font/google'
-import { ThemeProvider } from '@/components/theme-provider'
+import { AppProviders } from '@/components/app-providers'
 import './globals.css'
 
 const geistSans = Geist({ subsets: ['latin'] })
@@ -21,9 +21,7 @@ export default function RootLayout({
         <link rel="icon" href="/crosscert-logo.png" type="image/png" />
       </head>
       <body className={`${geistSans.className} font-sans`} suppressHydrationWarning>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-          {children}
-        </ThemeProvider>
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   )

@@ -13,4 +13,4 @@ requests>=2.31.0
 django-filter>=24.0
 django-markdownx>=4.0.2
 whitenoise>=6.6.0
-
+django-redis>=5.4.0

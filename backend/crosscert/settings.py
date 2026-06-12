@@ -43,6 +43,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.gzip.GZipMiddleware',
+    'crosscert.middleware.RequestLoggingMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -206,4 +207,87 @@ SECURE_SSL_REDIRECT = False
 SECURE_HSTS_SECONDS = 0
 SECURE_HSTS_INCLUDE_SUBDOMAINS = False
 SECURE_HSTS_PRELOAD = False
+
+# ---------------------------------------------------------------------------
+# Cache — Redis in production, in-memory for local dev
+# Option 1: REDIS_URL=rediss://default:TOKEN@host.upstash.io:6379
+# Option 2: Upstash REST credentials (auto-converted to Redis protocol URL)
+# ---------------------------------------------------------------------------
+def _resolve_redis_url() -> str:
+    direct = os.getenv('REDIS_URL', '').strip()
+    if direct:
+        return direct
+
+    rest_url = os.getenv('UPSTASH_REDIS_REST_URL', '').strip()
+    token = os.getenv('UPSTASH_REDIS_REST_TOKEN', '').strip()
+    if rest_url and token:
+        host = rest_url.replace('https://', '').replace('http://', '').rstrip('/')
+        return f'rediss://default:{token}@{host}:6379'
+    return ''
+
+
+REDIS_URL = _resolve_redis_url()
+
+if REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': REDIS_URL,
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                'IGNORE_EXCEPTIONS': True,
+            },
+            'KEY_PREFIX': 'crosscert',
+        }
+    }
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'crosscert-local',
+        }
+    }
+
+# ---------------------------------------------------------------------------
+# Logging & monitoring
+# ---------------------------------------------------------------------------
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[{asctime}] {levelname} {name} {message}',
+            'style': '{',
+        },
+        'json_style': {
+            'format': '{"time":"%(asctime)s","level":"%(levelname)s","logger":"%(name)s","message":"%(message)s"}',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'crosscert': {'handlers': ['console'], 'level': 'INFO', 'propagate': False},
+        'crosscert.api': {'handlers': ['console'], 'level': 'INFO', 'propagate': False},
+        'crosscert.security': {'handlers': ['console'], 'level': 'INFO', 'propagate': False},
+        'crosscert.certificates': {'handlers': ['console'], 'level': 'INFO', 'propagate': False},
+        'django.request': {'handlers': ['console'], 'level': 'WARNING', 'propagate': False},
+    },
+}
+
+# DRF throttles (backup layer alongside custom rate_limit decorators)
+REST_FRAMEWORK['DEFAULT_THROTTLE_CLASSES'] = [
+    'rest_framework.throttling.AnonRateThrottle',
+    'rest_framework.throttling.UserRateThrottle',
+]
+REST_FRAMEWORK['DEFAULT_THROTTLE_RATES'] = {
+    'anon': '120/min',
+    'user': '300/min',
+    'login': '10/min',
+    'certificates': '30/hour',
+    'events_create': '20/hour',
+}
 

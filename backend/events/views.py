@@ -26,8 +26,17 @@ from crosscert.email_utils import (
 )
 import uuid
 
-from django.contrib.auth.decorators import login_required
-from django.utils.decorators import method_decorator
+from crosscert.rate_limit import drf_rate_limit
+from crosscert.cache_utils import (
+    event_list_key,
+    event_detail_key,
+    get_cached,
+    set_cached,
+    invalidate_event_caches,
+    EVENT_LIST_TTL,
+    EVENT_DETAIL_TTL,
+)
+from crosscert.logging_utils import logger
 
 
 def _build_registration_code(registration: EventRegistration) -> str:
@@ -72,13 +81,53 @@ class EventViewSet(viewsets.ModelViewSet):
         # Anonymous users can only see public events
         return queryset.filter(is_public=True)
 
+    def list(self, request, *args, **kwargs):
+        """List events with Redis/in-memory cache for public catalog."""
+        cache_key = event_list_key(
+            is_authenticated=request.user.is_authenticated,
+            query_string=request.META.get('QUERY_STRING', ''),
+        )
+        cached = get_cached(cache_key)
+        if cached is not None:
+            return Response(cached)
+
+        response = super().list(request, *args, **kwargs)
+        if response.status_code == 200:
+            set_cached(cache_key, response.data, EVENT_LIST_TTL)
+        return response
+
+    def retrieve(self, request, *args, **kwargs):
+        """Retrieve single event — caches template + public info."""
+        pk = kwargs.get('pk')
+        cache_key = event_detail_key(pk)
+        cached = get_cached(cache_key)
+        if cached is not None:
+            return Response(cached)
+
+        response = super().retrieve(request, *args, **kwargs)
+        if response.status_code == 200:
+            set_cached(cache_key, response.data, EVENT_DETAIL_TTL)
+        return response
+
+    @drf_rate_limit('events_create', limit=20, window_seconds=3600)
     def create(self, request, *args, **kwargs):
         """Create an event."""
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
+        invalidate_event_caches()
         headers = self.get_success_headers(serializer.data)
+        logger.info('Event created', extra={'crosscert': {'event_id': serializer.data.get('id'), 'user_id': request.user.pk}})
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    def perform_update(self, serializer):
+        event = serializer.save()
+        invalidate_event_caches(event.id)
+
+    def perform_destroy(self, instance):
+        event_id = instance.id
+        instance.delete()
+        invalidate_event_caches(event_id)
 
     def perform_create(self, serializer):
         """Attach organizer and bootstrap event QR metadata."""
@@ -124,6 +173,7 @@ class EventViewSet(viewsets.ModelViewSet):
         
         event.status = 'completed'
         event.save(update_fields=['status'])
+        invalidate_event_caches(event.id)
         
         serializer = self.get_serializer(event)
         return Response({
@@ -318,7 +368,11 @@ class CheckInViewSet(viewsets.ModelViewSet):
             registration.save(update_fields=['is_present'])
 
         if not created and check_in.check_out_at is None:
-            return Response({'message': 'Already checked in'}, status=status.HTTP_400_BAD_REQUEST)
+            serializer = self.get_serializer(check_in)
+            data = serializer.data
+            data['message'] = 'Already checked in'
+            data['already_checked_in'] = True
+            return Response(data, status=status.HTTP_200_OK)
 
         # Attendance confirmation email (first time only)
         if created:
@@ -363,7 +417,11 @@ class CheckInViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Participant has not checked in yet'}, status=status.HTTP_400_BAD_REQUEST)
 
         if check_in.check_out_at is not None:
-            return Response({'message': 'Already checked out'}, status=status.HTTP_400_BAD_REQUEST)
+            serializer = self.get_serializer(check_in)
+            data = serializer.data
+            data['message'] = 'Already checked out'
+            data['already_checked_out'] = True
+            return Response(data, status=status.HTTP_200_OK)
 
         check_in.check_out_at = timezone.now()
         check_in.save(update_fields=['check_out_at'])

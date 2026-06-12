@@ -10,6 +10,9 @@ from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.conf import settings
 from participants.models import UserProfile
+from crosscert.rate_limit import rate_limit, _client_ip
+from crosscert.logging_utils import log_auth_action
+from crosscert.cache_utils import user_profile_key, get_cached, set_cached, USER_PROFILE_TTL
 import json
 import random
 import string
@@ -391,6 +394,7 @@ def reset_password_endpoint(request):
 
 @require_http_methods(["POST"])
 @csrf_exempt
+@rate_limit('login', limit=10, window_seconds=60)
 def login_endpoint(request):
     """
     Login endpoint that authenticates user and sets session cookie.
@@ -431,6 +435,8 @@ def login_endpoint(request):
                 }
             except UserProfile.DoesNotExist:
                 pass
+
+            log_auth_action('login', email=email, ip=_client_ip(request), success=True)
             
             return JsonResponse({
                 'success': True,
@@ -447,6 +453,7 @@ def login_endpoint(request):
                 'csrf_token': csrf_token,
             })
         else:
+            log_auth_action('login', email=email, ip=_client_ip(request), success=False)
             return JsonResponse({
                 'success': False,
                 'error': 'Invalid email or password',
@@ -486,8 +493,13 @@ def csrf_token_endpoint(request):
 
 @require_http_methods(["GET"])
 def current_user_endpoint(request):
-    """Get current authenticated user info."""
+    """Get current authenticated user info (cached briefly per user)."""
     if request.user.is_authenticated:
+        cache_key = user_profile_key(request.user.id)
+        cached = get_cached(cache_key)
+        if cached is not None:
+            return JsonResponse(cached)
+
         user = request.user
         # Get user profile if it exists
         profile_data = {}
@@ -501,7 +513,7 @@ def current_user_endpoint(request):
         except UserProfile.DoesNotExist:
             pass
         
-        return JsonResponse({
+        payload = {
             'authenticated': True,
             'user': {
                 'id': user.id,
@@ -514,8 +526,17 @@ def current_user_endpoint(request):
                 'is_superuser': user.is_superuser,
                 **profile_data,
             },
-        })
+        }
+        set_cached(cache_key, payload, USER_PROFILE_TTL)
+        return JsonResponse(payload)
     else:
         return JsonResponse({
             'authenticated': False,
         })
+
+
+@csrf_exempt
+@require_http_methods(['GET', 'HEAD'])
+def health_endpoint(request):
+    """Lightweight liveness probe for frontend connectivity checks."""
+    return JsonResponse({'status': 'ok'})

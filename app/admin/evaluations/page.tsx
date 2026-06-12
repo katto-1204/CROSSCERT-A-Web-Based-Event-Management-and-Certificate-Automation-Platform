@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Search, CheckCircle, Star, Filter, ArrowLeft, MessageSquare, Quote, ThumbsUp, Medal, GraduationCap, Building2, Image as ImageIcon } from 'lucide-react'
 import { useState, useEffect } from 'react'
-import { api, apiCall, adminApi } from '@/lib/api-config'
+import { api, apiCall, adminApi, getApiErrorMessage } from '@/lib/api-config'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 
@@ -53,10 +53,10 @@ export default function AdminEvaluations() {
         ])
 
         if (!eventsRes.ok) {
-          throw new Error(`Unable to load events data (Status: ${eventsRes.status})`)
+          throw new Error(await getApiErrorMessage(eventsRes, 'Unable to load events data'))
         }
         if (!evaluationsRes.ok) {
-          throw new Error(`Unable to load evaluations data (Status: ${evaluationsRes.status})`)
+          throw new Error(await getApiErrorMessage(evaluationsRes, 'Unable to load evaluations data'))
         }
 
         const eventsData = await eventsRes.json()
@@ -73,7 +73,9 @@ export default function AdminEvaluations() {
         setEvents(eventsList)
         setEvaluations(evaluationsList)
       } catch (err: any) {
-        console.error('[AdminEvaluations] Error loading data:', err)
+        if (err?.message !== 'Backend unavailable') {
+          console.error('[AdminEvaluations] Error loading data:', err)
+        }
         setError(err.message || 'Unable to load evaluations.')
       } finally {
         setLoading(false)

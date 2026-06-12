@@ -13,6 +13,8 @@ from events.models import Event, EventRegistration
 from certificates.models import Certificate
 from .serializers import CertificateSerializer, CertificateListSerializer, CertificateDetailSerializer
 from .generator import generate_certificate, CertificateGenerator
+from crosscert.rate_limit import drf_rate_limit
+from crosscert.logging_utils import log_certificate_action, timed_operation
 
 
 class CertificateViewSet(viewsets.ModelViewSet):
@@ -92,6 +94,7 @@ class CertificateViewSet(viewsets.ModelViewSet):
         serializer = CertificateDetailSerializer(certificate)
         return Response(serializer.data)
 
+    @drf_rate_limit('cert_preview', limit=30, window_seconds=3600)
     @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated], url_path='preview-sample')
     def preview_sample(self, request):
         """Generate a sample certificate PDF from mapping settings (no event required)."""
@@ -125,13 +128,25 @@ class CertificateViewSet(viewsets.ModelViewSet):
                 sample_text=sample_text,
                 return_base64=True,
             )
+            log_certificate_action(
+                'preview_sample',
+                user_id=request.user.pk,
+                success=True,
+            )
             return Response({'pdf_base64': pdf_base64})
         except Exception as exc:
+            log_certificate_action(
+                'preview_sample',
+                user_id=request.user.pk,
+                success=False,
+                error=str(exc),
+            )
             return Response(
                 {'error': f'Failed to generate certificate sample: {exc}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
+    @drf_rate_limit('cert_generate', limit=10, window_seconds=3600)
     @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
     def generate_certificate(self, request, pk=None):
         """Generate a certificate for a registration."""
@@ -155,9 +170,24 @@ class CertificateViewSet(viewsets.ModelViewSet):
             )
             
             serializer = self.get_serializer(certificate)
+            log_certificate_action(
+                'generate_single',
+                user_id=request.user.pk,
+                event_id=registration.event_id,
+                success=True,
+                extra={'registration_id': registration.pk},
+            )
             return Response(serializer.data, status=status.HTTP_201_CREATED)
             
         except Exception as e:
+            log_certificate_action(
+                'generate_single',
+                user_id=request.user.pk,
+                event_id=registration.event_id,
+                success=False,
+                error=str(e),
+                extra={'registration_id': registration.pk},
+            )
             return Response(
                 {'error': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -183,6 +213,7 @@ class CertificateViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
+    @drf_rate_limit('cert_bulk_generate', limit=5, window_seconds=3600)
     @action(detail=False, methods=['post'], permission_classes=[IsAdminUser])
     def bulk_generate(self, request):
         """Generate certificates for all eligible participants of an event."""
@@ -214,6 +245,14 @@ class CertificateViewSet(viewsets.ModelViewSet):
                 except Exception as e:
                     errors.append(f"Failed to generate certificate for {registration.email}: {str(e)}")
         
+        log_certificate_action(
+            'bulk_generate',
+            user_id=request.user.pk,
+            event_id=event_id,
+            success=len(errors) == 0,
+            error='; '.join(errors[:3]) if errors else None,
+            extra={'generated': generated, 'error_count': len(errors)},
+        )
         return Response({
             'generated': generated,
             'errors': errors

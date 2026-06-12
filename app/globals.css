@@ -292,4 +292,60 @@
   }
 }
 
+/* ── Check-in scanner animations ── */
+@keyframes scanner-beam {
+  0%, 100% { top: 12%; opacity: 0.4; }
+  50% { top: 82%; opacity: 1; }
+}
+
+@keyframes scanner-ring {
+  0%, 100% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes scanner-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.02); }
+}
+
+@keyframes scan-flash {
+  0% { opacity: 0; }
+  15% { opacity: 0.85; }
+  100% { opacity: 0; }
+}
+
+@keyframes corner-glow {
+  0%, 100% { box-shadow: 0 0 12px rgba(251, 113, 133, 0.4); }
+  50% { box-shadow: 0 0 28px rgba(251, 113, 133, 0.9); }
+}
+
+@keyframes float-soft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.scanner-beam {
+  animation: scanner-beam 2.2s ease-in-out infinite;
+}
+
+.scanner-pulse-frame {
+  animation: scanner-pulse 2.5s ease-in-out infinite;
+}
+
+.scanner-ring {
+  animation: scanner-ring 4s linear infinite;
+}
+
+.scan-flash-overlay {
+  animation: scan-flash 0.55s ease-out forwards;
+}
+
+.scanner-corner-glow {
+  animation: corner-glow 2s ease-in-out infinite;
+}
+
+.float-soft {
+  animation: float-soft 3s ease-in-out infinite;
+}
+
 /* stylelint-enable at-rule-no-unknown */

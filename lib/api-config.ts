@@ -3,6 +3,13 @@
  * Uses dashes (kebab-case) for all route names
  */
 
+import {
+  createUnavailableResponse,
+  isBackendUnavailableResponse,
+  reportBackendReachable,
+  reportBackendUnreachable,
+} from './backend-status'
+
 // Base API URL - can be configured via environment variable
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const API_BASE_URL = rawApiUrl.startsWith('http') ? rawApiUrl : `https://${rawApiUrl}`
@@ -21,6 +28,8 @@ export const API_ROUTES = {
     verifyOtp: '/api/auth/verify-otp/',
     resetPassword: '/api/auth/reset-password/',
   },
+
+  health: '/api/health/',
 
   // General API routes
   events: '/api/events',
@@ -47,6 +56,28 @@ export const API_ROUTES = {
 export function getApiUrl(route: string): string {
   return `${API_BASE_URL}${route}`
 }
+
+/** Human-readable message for failed API responses (including synthetic offline responses). */
+export async function getApiErrorMessage(
+  response: Response,
+  fallback = 'Request failed',
+): Promise<string> {
+  if (isBackendUnavailableResponse(response)) {
+    return 'Backend is unavailable. Please start the server or retry in a moment.'
+  }
+
+  try {
+    const data = await response.clone().json()
+    if (typeof data?.error === 'string') return data.error
+    if (typeof data?.detail === 'string') return data.detail
+  } catch {
+    // ignore parse errors
+  }
+
+  return `${fallback} (Status: ${response.status})`
+}
+
+export { isBackendUnavailableResponse } from './backend-status'
 
 /**
  * Admin API helper functions
@@ -187,7 +218,14 @@ export async function ensureCsrfToken(): Promise<string> {
   if (existing) return existing
 
   const csrfUrl = getApiUrl(API_ROUTES.auth.csrfToken)
-  const csrfResp = await fetch(csrfUrl, { credentials: 'include' })
+  let csrfResp: Response
+  try {
+    csrfResp = await fetch(csrfUrl, { credentials: 'include' })
+  } catch {
+    reportBackendUnreachable()
+    throw new Error('Backend unavailable')
+  }
+
   if (!csrfResp.ok) {
     throw new Error(`Failed to fetch CSRF token (${csrfResp.status})`)
   }
@@ -232,11 +270,18 @@ export async function apiRequest<T = any>(
     headers['Content-Type'] = 'application/json'
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-    credentials: 'include',
-  })
+  let response: Response
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+      credentials: 'include',
+    })
+    reportBackendReachable(response.status)
+  } catch {
+    reportBackendUnreachable()
+    return createUnavailableResponse()
+  }
 
   // Retry once with a fresh token if Django middleware still rejects CSRF
   if (
