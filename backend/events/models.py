@@ -18,10 +18,11 @@ from certificates.validators import validate_landscape_certificate, validate_cer
 
 def default_certificate_coordinates():
     """Provide sane defaults so admins can preview overlays immediately."""
+    # Centered on standard 2000×1414 premade templates
     return {
-        'name': {'x': 561, 'y': 420},
-        'event_title': {'x': 561, 'y': 360},
-        'date': {'x': 561, 'y': 300},
+        'name': {'x': 1000, 'y': 720},
+        'event_title': {'x': 900, 'y': 538},
+        'date': {'x': 1230, 'y': 538},
     }
 
 

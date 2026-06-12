@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { ArrowLeft, Mail, Lock, Loader2, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, Mail, Lock, Loader2, CheckCircle2, Eye, EyeOff } from 'lucide-react'
 import { authApi, apiRequest } from '@/lib/api-config'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -15,15 +15,22 @@ export default function SignIn() {
   const [isLoading, setIsLoading] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
 
   // Initialize CSRF token on component mount
   useEffect(() => {
     const initializeCsrf = async () => {
       try {
-        await apiRequest(authApi.csrfToken(), {
+        const response = await apiRequest(authApi.csrfToken(), {
           method: 'GET',
         })
+        if (response.ok) {
+          const data = await response.json()
+          if (data.csrf_token) {
+            localStorage.setItem('csrfToken', data.csrf_token)
+          }
+        }
       } catch (err) {
         console.error('Failed to initialize CSRF token:', err)
       }
@@ -68,6 +75,9 @@ export default function SignIn() {
       localStorage.setItem('userEmail', data.user.email)
       localStorage.setItem('userId', data.user.id.toString())
       localStorage.setItem('isStaff', data.user.is_staff.toString())
+      if (data.csrf_token) {
+        localStorage.setItem('csrfToken', data.csrf_token)
+      }
 
       // Determine role based on is_staff flag
       const userRole = data.user.is_staff ? 'admin' : 'participant'
@@ -205,13 +215,24 @@ export default function SignIn() {
                   <Lock className="absolute left-3 top-3 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                   <Input
                     id="password"
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 h-11 bg-background border-input text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary transition-all duration-200"
+                    className="pl-10 pr-10 h-11 bg-background border-input text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary transition-all duration-200"
                     required
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-3.5 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
                 </div>
               </div>
             </div>

@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { getStoredEvents, fetchUserDepartment } from '@/lib/event-context'
 import { Event } from '@/lib/event-context'
 import { api, apiCall, getAuthenticatedUserEmail, authApi, apiRequest } from '@/lib/api-config'
+import { fetchBookmarkIds, toggleBookmark as syncToggleBookmark, migrateLocalBookmarksToServer } from '@/lib/bookmarks'
 import { Badge } from '@/components/ui/badge'
 
 const DEPARTMENT_ABBR = {
@@ -102,11 +103,9 @@ export default function ParticipantEvents() {
         const publicEvents = eventsList.filter(event => event.isPublic !== false)
         setEvents(publicEvents)
 
-        const storedBookmarks = localStorage.getItem('bookmarkedEvents')
-        if (storedBookmarks) {
-          const arr: any[] = JSON.parse(storedBookmarks)
-          setBookmarked(new Set(arr.map((v) => String(v))))
-        }
+        await migrateLocalBookmarksToServer()
+        const bookmarkIds = await fetchBookmarkIds()
+        setBookmarked(bookmarkIds)
 
         const email = await getAuthenticatedUserEmail()
         if (email) {
@@ -136,11 +135,8 @@ export default function ParticipantEvents() {
         const storedEvents = getStoredEvents()
         setEvents(storedEvents)
 
-        const storedBookmarks = localStorage.getItem('bookmarkedEvents')
-        if (storedBookmarks) {
-          const arr: any[] = JSON.parse(storedBookmarks)
-          setBookmarked(new Set(arr.map((v) => String(v))))
-        }
+        const bookmarkIds = await fetchBookmarkIds()
+        setBookmarked(bookmarkIds)
       } finally {
         setIsLoading(false)
       }
@@ -332,16 +328,25 @@ export default function ParticipantEvents() {
     return userDeptAbbr !== null && eventDeptAbbr !== null && userDeptAbbr === eventDeptAbbr
   }
 
-  const toggleBookmark = (id: string | number) => {
+  const toggleBookmark = async (id: string | number) => {
     const sid = String(id)
-    const newBookmarked = new Set(bookmarked)
-    if (newBookmarked.has(sid)) {
-      newBookmarked.delete(sid)
-    } else {
-      newBookmarked.add(sid)
+    const wasBookmarked = bookmarked.has(sid)
+    const optimistic = new Set(bookmarked)
+    if (wasBookmarked) optimistic.delete(sid)
+    else optimistic.add(sid)
+    setBookmarked(optimistic)
+
+    try {
+      const nowBookmarked = await syncToggleBookmark(id)
+      setBookmarked((prev) => {
+        const next = new Set(prev)
+        if (nowBookmarked) next.add(sid)
+        else next.delete(sid)
+        return next
+      })
+    } catch {
+      setBookmarked(bookmarked)
     }
-    setBookmarked(newBookmarked)
-    localStorage.setItem('bookmarkedEvents', JSON.stringify(Array.from(newBookmarked)))
   }
 
   const clearFilters = () => {

@@ -26,7 +26,7 @@ class CertificateGenerator:
         """
         Initialize certificate generator.
         If template_image is provided, page size is determined from the image dimensions.
-        Otherwise, defaults to standard landscape A4 (1123, 794).
+        Otherwise, defaults to standard premade template size (2000, 1414).
         """
         self.template_image = template_image
         self.page_width, self.page_height = self._get_page_dimensions()
@@ -39,19 +39,19 @@ class CertificateGenerator:
         Otherwise, return standard landscape A4 dimensions.
         """
         if not self.template_image:
-            return (1123, 794)  # Standard landscape A4
+            return (2000, 1414)
         
         try:
             image_bytes = self._decode_base64_image(self.template_image)
             if not image_bytes:
-                return (1123, 794)
+                return (2000, 1414)
             
             image = Image.open(io.BytesIO(image_bytes))
             width, height = image.size
             return (width, height)
         except Exception:
             # Fallback to standard dimensions if image processing fails
-            return (1123, 794)
+            return (2000, 1414)
 
     def _get_page_dimensions_for_template(self, template_image):
         """
@@ -91,23 +91,31 @@ class CertificateGenerator:
         image_reader = ImageReader(io.BytesIO(image_bytes))
         c.drawImage(image_reader, 0, 0, width=self.page_width, height=self.page_height)
 
+    def _coerce_font_size(self, value, default):
+        try:
+            return int(float(value))
+        except (TypeError, ValueError):
+            return default
+
     def _draw_text(self, c, text, coords, font='Helvetica-Bold', size=28, color=None, align='center'):
         """Draw text at specified coordinates with custom font, size, and color."""
+        size = self._coerce_font_size(size, 28)
         x = coords.get('x', self.page_width / 2)
         y = coords.get('y', self.page_height / 2)
-        
-        # Use the font size directly without scaling
-        # The frontend preview uses the same sizes, so we match exactly
+
+        # Frontend preview anchors the vertical center of each label at y (bottom-left origin).
+        # ReportLab drawCentredString uses the text baseline, so shift down by ~30% of font size.
+        y_baseline = y - (size * 0.30)
+
         c.setFont(font, size)
-        # Use provided color or fall back to default text color
         text_color = HexColor(color) if color else self.text_color
         c.setFillColor(text_color)
         if align == 'center':
-            c.drawCentredString(x, y, text)
+            c.drawCentredString(x, y_baseline, text)
         elif align == 'right':
-            c.drawRightString(x, y, text)
+            c.drawRightString(x, y_baseline, text)
         else:
-            c.drawString(x, y, text)
+            c.drawString(x, y_baseline, text)
 
     def generate_certificate(
         self,
@@ -157,33 +165,36 @@ class CertificateGenerator:
         name_text = text_overrides.get('name') or participant_data.get('name', 'Participant Name')
         name_style = styles.get('name', {})
         self._draw_text(
-            c, 
-            name_text.upper(), 
-            coords.get('name', {}), 
-            size=name_style.get('fontSize', 38),
-            color=name_style.get('color')
+            c,
+            name_text.upper(),
+            coords.get('name', {}),
+            font='Helvetica-Bold',
+            size=name_style.get('fontSize', 52),
+            color=name_style.get('color'),
         )
 
         # Event title
         event_title = text_overrides.get('event_title') or event_data.get('title', 'Event Title')
         title_style = styles.get('event_title', {})
         self._draw_text(
-            c, 
-            event_title, 
-            coords.get('event_title', {}), 
-            size=title_style.get('fontSize', 24),
-            color=title_style.get('color')
+            c,
+            event_title,
+            coords.get('event_title', {}),
+            font='Times-Bold',
+            size=title_style.get('fontSize', 34),
+            color=title_style.get('color'),
         )
 
         # Event date
         event_date = text_overrides.get('date') or event_data.get('date', 'January 01, 2025')
         date_style = styles.get('date', {})
         self._draw_text(
-            c, 
-            event_date, 
-            coords.get('date', {}), 
-            size=date_style.get('fontSize', 18),
-            color=date_style.get('color')
+            c,
+            event_date,
+            coords.get('date', {}),
+            font='Times-Roman',
+            size=date_style.get('fontSize', 34),
+            color=date_style.get('color'),
         )
 
         c.showPage()

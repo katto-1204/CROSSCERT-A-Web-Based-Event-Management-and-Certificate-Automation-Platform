@@ -20,6 +20,7 @@ export function clearAllLocalStorage(): void {
     'userProgram',
     'userName',
     'userBirthday',
+    'csrfToken',
     'crosscert_local_events',
     'events',
     'registrations',

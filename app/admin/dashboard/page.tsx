@@ -525,12 +525,11 @@ export default function AdminDashboard() {
         <div className="space-y-6">
 
           {/* Activity Feed */}
-          <div className="bg-neutral-900 dark:bg-[#1f0a0a] text-white p-6 rounded-2xl shadow-xl relative overflow-hidden border border-neutral-800 dark:border-red-900/30">
-            {/* Red Glow for Dark Mode Accent */}
-            <div className="absolute top-0 right-0 p-32 bg-red-600/20 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+          <div className="bg-white dark:bg-[#1f0a0a] text-foreground dark:text-white p-6 rounded-2xl shadow-xl relative overflow-hidden border border-neutral-200 dark:border-red-900/30">
+            <div className="absolute top-0 right-0 p-32 bg-red-600/10 dark:bg-red-600/20 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
             <div className="relative z-10">
               <h3 className="font-bold text-lg mb-6 flex items-center gap-2">
-                <Activity className="w-5 h-5 text-red-400" />
+                <Activity className="w-5 h-5 text-red-500 dark:text-red-400" />
                 Recent Activity
               </h3>
               <div className="space-y-6">
@@ -539,26 +538,26 @@ export default function AdminDashboard() {
                     <div key={i} className="flex gap-4 relative">
                       <div className="flex flex-col items-center">
                         <div className="w-2.5 h-2.5 rounded-full bg-red-500 mt-1.5" />
-                        {i !== recentActivity.length - 1 && <div className="w-0.5 grow bg-neutral-700/50 mt-1" />}
+                        {i !== recentActivity.length - 1 && <div className="w-0.5 grow bg-neutral-200 dark:bg-neutral-700/50 mt-1" />}
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-neutral-200">
+                        <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
                           New Event Added
                         </p>
-                        <p className="text-xs text-neutral-400 mt-0.5 line-clamp-1">
-                          &quot;{event.title}&quot; was created.
+                        <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5 line-clamp-1">
+                          &quot;{event.title || event.name}&quot; was created.
                         </p>
-                        <p className="text-xs text-neutral-500 mt-1">
+                        <p className="text-xs text-neutral-400 dark:text-neutral-500 mt-1">
                           {event.created_at ? new Date(event.created_at).toLocaleDateString() : 'Recently'}
                         </p>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-neutral-500">No recent activity logged.</p>
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400">No recent activity logged.</p>
                 )}
               </div>
-              <Button variant="outline" className="w-full mt-6 bg-white/5 border-white/10 hover:bg-white/10 text-white text-xs border-dashed">
+              <Button variant="outline" className="w-full mt-6 bg-neutral-50 dark:bg-white/5 border-neutral-200 dark:border-white/10 hover:bg-neutral-100 dark:hover:bg-white/10 text-neutral-700 dark:text-white text-xs border-dashed">
                 View Full Logs
               </Button>
             </div>

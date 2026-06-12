@@ -150,7 +150,7 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 # REST Framework configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
+        'crosscert.authentication.CsrfExemptSessionAuthentication',
         'rest_framework.authentication.TokenAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
@@ -176,20 +176,29 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
 APPEND_SLASH = False # Prevents redirects that break CORS preflights
 
 
-CSRF_TRUSTED_ORIGINS = [
+_csrf_origin_candidates = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
     'https://crosscert.vercel.app',
     'https://crosscert-kat-arnados-projects.vercel.app',
     'https://crosscert-a-web-based-event-management.onrender.com',
+    FRONTEND_BASE_URL,
+    os.getenv('FRONTEND_URL', '').rstrip('/'),
 ]
+_vercel_url = os.getenv('VERCEL_URL', '').strip()
+if _vercel_url:
+    _csrf_origin_candidates.append(
+        _vercel_url if _vercel_url.startswith('http') else f'https://{_vercel_url}'
+    )
+CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(origin for origin in _csrf_origin_candidates if origin))
 
 # Security Settings (Hardened for Production)
-CSRF_COOKIE_SECURE = True
-SESSION_COOKIE_SECURE = True
+# Allow cookies over HTTP in local development so CSRF/session auth works on localhost
+CSRF_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_HTTPONLY = False
-CSRF_COOKIE_SAMESITE = 'None'
-SESSION_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SAMESITE = 'None' if not DEBUG else 'Lax'
+SESSION_COOKIE_SAMESITE = 'None' if not DEBUG else 'Lax'
 
 # Production Proxy Settings
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

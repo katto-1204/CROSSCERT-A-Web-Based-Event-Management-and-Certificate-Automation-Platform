@@ -7,6 +7,7 @@ from django.views.generic import RedirectView
 from rest_framework.routers import DefaultRouter
 from events.views import EventViewSet, EventRegistrationViewSet, CheckInViewSet, NotificationViewSet
 from participants.views import ParticipantViewSet, EvaluationViewSet
+from participants.bookmark_views import BookmarkViewSet
 from certificates.views import CertificateViewSet, QRCodeViewSet
 from auth_endpoints import login_endpoint, logout_endpoint, csrf_token_endpoint, current_user_endpoint, forgot_password_endpoint, verify_otp_endpoint, reset_password_endpoint
 
@@ -19,6 +20,7 @@ api_router.register(r'notifications', NotificationViewSet, basename='notificatio
 api_router.register(r'evaluations', EvaluationViewSet, basename='evaluation')
 api_router.register(r'certificates', CertificateViewSet, basename='certificate')
 api_router.register(r'qr-code', QRCodeViewSet, basename='qr-code')
+api_router.register(r'bookmarks', BookmarkViewSet, basename='bookmark')
 api_router.register(r'participants', ParticipantViewSet, basename='participant')
 
 # Admin API router for admin-specific endpoints

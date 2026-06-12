@@ -1,5 +1,7 @@
 # Setup Django backend for Windows
 
+Set-Location $PSScriptRoot
+
 Write-Host "Creating virtual environment..." -ForegroundColor Green
 python -m venv venv
 

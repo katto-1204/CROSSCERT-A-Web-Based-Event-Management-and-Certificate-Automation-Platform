@@ -3,7 +3,7 @@ Participant models for CROSSCERT.
 """
 from django.db import models
 from django.contrib.auth.models import User
-from events.models import EventRegistration
+from events.models import Event, EventRegistration
 
 
 class UserProfile(models.Model):
@@ -12,9 +12,23 @@ class UserProfile(models.Model):
     department = models.CharField(max_length=200, blank=True)
     program = models.CharField(max_length=200, blank=True)
     birthday = models.DateField(null=True, blank=True)
-    
+
     def __str__(self):
         return f"Profile for {self.user.email}"
+
+
+class EventBookmark(models.Model):
+    """Server-synced event bookmark for a participant."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='event_bookmarks')
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='bookmarks')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'event')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.email} bookmarked {self.event.title}"
 
 
 class Evaluation(models.Model):

@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { ArrowLeft, Check, Star, Clock, BookOpen, Target, ThumbsUp, Sparkles } from 'lucide-react'
-import { api } from '@/lib/api-config'
+import { api, apiCall } from '@/lib/api-config'
 
 export default function EvaluationPage() {
   const router = useRouter()
@@ -44,7 +44,7 @@ export default function EvaluationPage() {
     try {
       const eventId = params.id as string
       const email = formData.email
-      const resReg = await fetch(`${api.registrations()}/?event=${encodeURIComponent(eventId)}&email=${encodeURIComponent(email)}`)
+      const resReg = await apiCall.get(`${api.registrations()}/?event=${encodeURIComponent(eventId)}&email=${encodeURIComponent(email)}`)
       const registrations = await resReg.json()
       if (!Array.isArray(registrations) || registrations.length === 0) {
         alert('Registration not found for this email.')
@@ -72,11 +72,7 @@ export default function EvaluationPage() {
         suggestions: formData.suggestions,
       }
 
-      const resEval = await fetch(api.evaluations(), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
+      const resEval = await apiCall.post(api.evaluations(), payload)
 
       if (!resEval.ok) {
         const data = await resEval.json().catch(() => ({}))

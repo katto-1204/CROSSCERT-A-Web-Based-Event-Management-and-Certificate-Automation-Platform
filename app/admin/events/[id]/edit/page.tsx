@@ -10,6 +10,7 @@ import { ArrowLeft, Save, Loader2, Calendar, MapPin, Clock, Users, FileText, Lay
 import { useState, useEffect } from 'react'
 import { Event, getEventById } from '@/lib/event-context'
 import { adminApi, apiCall } from '@/lib/api-config'
+import { EVENT_THEMES, getEventThemeByName } from '@/lib/event-themes'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
@@ -51,29 +52,7 @@ const getCategoryFromEvent = (event: Event): string => {
 }
 
 // Theme definitions matching Create page
-interface Theme {
-  id: number
-  name: string
-  color: string
-  accent: string
-  textColor?: string
-  border?: string
-  gradientFrom: string
-  bg?: string // Map to page.tsx styles for consistency if needed, but Create uses 'color' class
-}
-
-const THEMES: Theme[] = [
-  { id: 1, name: 'HCDC', color: 'bg-gradient-to-br from-red-700 to-blue-900', accent: '#b91c1c', textColor: 'text-blue-900', border: 'border-blue-900', gradientFrom: 'from-red-700' },
-  { id: 2, name: 'CCJE', color: 'bg-red-700', accent: '#b91c1c', textColor: 'text-red-700', border: 'border-red-700', gradientFrom: 'from-red-700' },
-  { id: 3, name: 'CET', color: 'bg-orange-500', accent: '#f97316', textColor: 'text-orange-500', border: 'border-orange-500', gradientFrom: 'from-orange-500' },
-  { id: 4, name: 'CHATME', color: 'bg-gray-500', accent: '#6b7280', textColor: 'text-gray-500', border: 'border-gray-500', gradientFrom: 'from-gray-500' },
-  { id: 5, name: 'HUSOCOM', color: 'bg-fuchsia-700', accent: '#a21caf', textColor: 'text-fuchsia-700', border: 'border-fuchsia-700', gradientFrom: 'from-fuchsia-700' },
-  { id: 6, name: 'COME', color: 'bg-sky-500', accent: '#0ea5e9', textColor: 'text-sky-500', border: 'border-sky-500', gradientFrom: 'from-sky-500' },
-  { id: 7, name: 'SBME', color: 'bg-yellow-500', accent: '#eab308', textColor: 'text-yellow-600', border: 'border-yellow-500', gradientFrom: 'from-yellow-500' },
-  { id: 8, name: 'STE', color: 'bg-blue-600', accent: '#2563eb', textColor: 'text-blue-600', border: 'border-blue-600', gradientFrom: 'from-blue-600' },
-  { id: 9, name: 'Black', color: 'bg-black', accent: '#000000', textColor: 'text-black', border: 'border-black', gradientFrom: 'from-black' },
-  { id: 11, name: 'White', color: 'bg-white', accent: '#ffffff', textColor: 'text-slate-900', border: 'border-slate-200', gradientFrom: 'from-slate-100' },
-]
+const THEMES = EVENT_THEMES
 
 export default function EditEventPage() {
   const router = useRouter()
@@ -129,7 +108,7 @@ export default function EditEventPage() {
           // Determine initial theme from event data
           let initialThemeId = 1
           if (targetEvent.theme) {
-            const found = THEMES.find(t => t.name === targetEvent.theme)
+            const found = getEventThemeByName(String(targetEvent.theme ?? ''))
             if (found) initialThemeId = found.id
           } else {
             // Fallback based on category

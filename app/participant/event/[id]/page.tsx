@@ -8,31 +8,11 @@ import { Badge } from '@/components/ui/badge'
 import { MapPin, Calendar, Clock, ArrowLeft, Share2, Ticket, Users, FileText, CheckCircle2, AlertCircle, Info, Landmark, Bookmark, QrCode, GraduationCap, School, Download, X, Facebook, Instagram, Twitter, Mail, Heart, Star, Rocket } from 'lucide-react'
 import { getEventById, getRegistrationStatus, Event, fetchUserDepartment } from '@/lib/event-context'
 import { getAuthenticatedUserEmail, api, apiCall, authApi, apiRequest } from '@/lib/api-config'
+import { fetchBookmarkIds, toggleBookmark as syncToggleBookmark, migrateLocalBookmarksToServer } from '@/lib/bookmarks'
+import { CATEGORY_COLORS, getThemeDisplayStyle, normalizeThemeName } from '@/lib/event-themes'
 import { QRCodeSVG } from 'qrcode.react'
 
 // Define the precise color palette
-// Define the precise color palette
-// THEME_STYLES maps the event.theme field to color styles
-const THEME_STYLES: Record<string, { bg: string; border: string; text: string; gradient: string }> = {
-  'Professional Blue': { bg: 'bg-blue-600', text: 'text-blue-100', border: 'border-blue-400', gradient: 'from-blue-600 to-blue-900' },
-  'Modern Red': { bg: 'bg-red-600', text: 'text-red-100', border: 'border-red-400', gradient: 'from-red-600 to-red-900' },
-  'Vibrant Orange': { bg: 'bg-orange-600', text: 'text-orange-100', border: 'border-orange-400', gradient: 'from-orange-600 to-orange-900' },
-  'Elegant Gold': { bg: 'bg-yellow-500', text: 'text-yellow-50', border: 'border-yellow-400', gradient: 'from-yellow-500 to-yellow-800' },
-  'Nature Green': { bg: 'bg-green-600', text: 'text-green-100', border: 'border-green-400', gradient: 'from-green-600 to-green-900' },
-  'Sleek Dark': { bg: 'bg-zinc-800', text: 'text-zinc-100', border: 'border-zinc-600', gradient: 'from-zinc-800 to-black' },
-}
-
-const CATEGORY_COLORS: Record<string, { bg: string; border: string; text: string; gradient: string }> = {
-  'STE': { bg: 'bg-blue-600', text: 'text-blue-100', border: 'border-blue-400', gradient: 'from-blue-600 to-blue-900' },
-  'CET': { bg: 'bg-orange-600', text: 'text-orange-100', border: 'border-orange-400', gradient: 'from-orange-600 to-orange-900' },
-  'SBME': { bg: 'bg-yellow-500', text: 'text-yellow-50', border: 'border-yellow-400', gradient: 'from-yellow-500 to-yellow-800' },
-  'CHATME': { bg: 'bg-zinc-600', text: 'text-zinc-100', border: 'border-zinc-400', gradient: 'from-zinc-600 to-zinc-900' },
-  'HUSOCOM': { bg: 'bg-[#831843]', text: 'text-pink-100', border: 'border-pink-500', gradient: 'from-[#831843] to-[#500724]' },
-  'COME': { bg: 'bg-sky-600', text: 'text-sky-100', border: 'border-sky-400', gradient: 'from-sky-600 to-sky-900' },
-  'CCJE': { bg: 'bg-red-600', text: 'text-red-100', border: 'border-red-400', gradient: 'from-red-600 to-red-900' },
-  'HCDC': { bg: 'bg-gradient-to-r from-blue-700 to-red-600', text: 'text-white', border: 'border-blue-600', gradient: 'from-blue-900 via-blue-800 to-red-900' },
-}
-
 const DEPARTMENT_ABBR = {
   'College of Criminal Justice Education': 'CCJE',
   'College of Engineering and Technology': 'CET',
@@ -57,9 +37,9 @@ const getCategoryFromEvent = (event: Event): string => {
   return deptAbbr || 'HCDC'
 }
 
-function activeButtonColor(status: string, colors: any) {
-  if (status === 'none') return `${colors.bg} text-white hover:opacity-90`
-  return 'bg-neutral-900 text-white hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200'
+function activeButtonColor(status: string, colors: { bg: string }) {
+  if (status === 'none') return `${colors.bg} text-primary-foreground hover:opacity-90`
+  return 'bg-primary text-primary-foreground hover:bg-primary/90'
 }
 
 export default function ParticipantEventDetailPage() {
@@ -135,11 +115,9 @@ export default function ParticipantEventDetailPage() {
           const canAccess = eventCategory === 'HCDC' || (!!userDept && getDepartmentAbbr(userDept) === eventCategory)
           setHasAccess(canAccess)
 
-          const storedBookmarks = localStorage.getItem('bookmarkedEvents')
-          if (storedBookmarks) {
-            const bookmarks = new Set(JSON.parse(storedBookmarks))
-            setIsBookmarked(bookmarks.has(eventId))
-          }
+          await migrateLocalBookmarksToServer()
+          const bookmarkIds = await fetchBookmarkIds()
+          setIsBookmarked(bookmarkIds.has(eventId))
 
           let derivedStatus = 'none'
           const userEmail = await getAuthenticatedUserEmail()
@@ -276,18 +254,18 @@ export default function ParticipantEventDetailPage() {
     }
   }
 
-  const toggleBookmark = () => {
+  const toggleBookmark = async () => {
     if (!event) return
     const eventId = String(event.id)
-    const stored = new Set(JSON.parse(localStorage.getItem('bookmarkedEvents') || '[]'))
-    if (stored.has(eventId)) {
-      stored.delete(eventId)
-      setIsBookmarked(false)
-    } else {
-      stored.add(eventId)
-      setIsBookmarked(true)
+    const wasBookmarked = isBookmarked
+    setIsBookmarked(!wasBookmarked)
+
+    try {
+      const nowBookmarked = await syncToggleBookmark(eventId)
+      setIsBookmarked(nowBookmarked)
+    } catch {
+      setIsBookmarked(wasBookmarked)
     }
-    localStorage.setItem('bookmarkedEvents', JSON.stringify(Array.from(stored)))
   }
 
   const handleDownloadQR = () => {
@@ -372,28 +350,12 @@ export default function ParticipantEventDetailPage() {
 
   const eventCategory = event ? getCategoryFromEvent(event) : 'HCDC'
 
-  // Logic: HCDC events ALWAYS use the Red/Blue gradient.
-  // Other events use the selected theme if available, otherwise fallback to department color or default.
-  let colors = CATEGORY_COLORS[eventCategory] || CATEGORY_COLORS['HCDC']
-
-  if (event && eventCategory !== 'HCDC' && event.theme && THEME_STYLES[event.theme]) {
-    colors = THEME_STYLES[event.theme]
-  } else if (event && eventCategory === 'HCDC' && event.theme && event.theme !== 'Professional Blue' && THEME_STYLES[event.theme]) {
-    // Optional: If user wants specific theme even for HCDC (except the gradient rule says only HCDC gets gradient, 
-    // but user said "THE GRADIENT RED AND BLUE IS ONLY FOR THE HCDC WIDE VENTS", 
-    // which implies HCDC *must* look like that, OR that *only* HCDC can look like that. 
-    // Usually "Only for HCDC" means "Don't use it elsewhere". 
-    // "THEME SELECTED IN THE EVENT CREATION" implies customizability.
-    // Let's assume: If event.theme is set, use it. If not, use Category default.
-    // BUT, keep HCDC default specific.
-    if (THEME_STYLES[event.theme]) {
-      colors = THEME_STYLES[event.theme]
-    }
+  let colors = CATEGORY_COLORS[eventCategory] || CATEGORY_COLORS.HCDC
+  if (event?.theme) {
+    colors = getThemeDisplayStyle(String(event.theme))
   }
-
-  // Override: If category is HCDC and theme is default or missing, ensure HCDC gradient.
-  if (eventCategory === 'HCDC' && (!event?.theme || event.theme === 'Professional Blue')) {
-    colors = CATEGORY_COLORS['HCDC']
+  if (eventCategory === 'HCDC' && (!event?.theme || normalizeThemeName(String(event.theme)) === 'HCDC')) {
+    colors = CATEGORY_COLORS.HCDC
   }
 
   return (

@@ -7,7 +7,8 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Search, Plus, MoreVertical, Calendar, Users, CheckCircle } from 'lucide-react'
-import { api } from '@/lib/api-config'
+import { api, apiCall } from '@/lib/api-config'
+import { getThemeColorClass } from '@/lib/event-themes'
 
 type EventRecord = {
   id: number
@@ -21,19 +22,6 @@ type EventRecord = {
   cover_image?: string
 }
 
-const themeColorMap: Record<string, string> = {
-  'Professional Blue': 'bg-blue-600',
-  'Tech Purple': 'bg-purple-600',
-  'Vibrant Red': 'bg-red-600',
-  'Forest Green': 'bg-green-600',
-  'Ocean Teal': 'bg-teal-600',
-  'Sunset Orange': 'bg-orange-600',
-  'Midnight Navy': 'bg-slate-800',
-  'Rose Pink': 'bg-pink-600',
-  'Gold Yellow': 'bg-yellow-500',
-  Indigo: 'bg-indigo-600',
-}
-
 export default function EventsPage() {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
@@ -45,7 +33,7 @@ export default function EventsPage() {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const res = await fetch(api.events())
+        const res = await apiCall.get(api.events())
         if (!res.ok) throw new Error('Unable to load events')
         const data = await res.json()
         setEvents(data)
@@ -140,12 +128,6 @@ export default function EventsPage() {
               <Card
                 key={event.id}
                 className="p-4 sm:p-5 md:p-6 border border-border hover:shadow-lg transition-shadow"
-                style={{
-                  background:
-                    event.theme && themeColorMap[event.theme]
-                      ? undefined
-                      : undefined,
-                }}
               >
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                   <div className="flex-1 min-w-0">

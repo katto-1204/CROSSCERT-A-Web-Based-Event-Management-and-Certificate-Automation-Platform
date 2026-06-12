@@ -2,7 +2,8 @@
 Serializers for Participants app.
 """
 from rest_framework import serializers
-from .models import Evaluation, UserProfile
+from .models import Evaluation, UserProfile, EventBookmark
+from events.models import CheckIn
 from django.contrib.auth.models import User
 
 
@@ -21,6 +22,26 @@ class EvaluationSerializer(serializers.ModelSerializer):
                   'feedback', 'most_liked', 'suggestions', 'image', 'submitted_at',
                   'event_title', 'event_id', 'participant_name']
 
+    def validate(self, data):
+        registration = data.get('registration') or getattr(self.instance, 'registration', None)
+        if registration is None:
+            return data
+
+        if not registration.is_present:
+            raise serializers.ValidationError('You must check in before submitting an evaluation.')
+
+        try:
+            check_in = registration.check_in
+            if not check_in.check_out_at:
+                raise serializers.ValidationError('You must check out before submitting an evaluation.')
+        except CheckIn.DoesNotExist:
+            raise serializers.ValidationError('Check-in record not found. Please complete event attendance first.')
+
+        if registration.has_evaluated and self.instance is None:
+            raise serializers.ValidationError('You have already submitted an evaluation for this event.')
+
+        return data
+
     def get_event_title(self, obj):
         try:
             return obj.registration.event.title
@@ -38,6 +59,22 @@ class EvaluationSerializer(serializers.ModelSerializer):
             return f"{obj.registration.first_name} {obj.registration.last_name}"
         except:
             return obj.name or "Unknown Participant"
+
+
+class EventBookmarkSerializer(serializers.ModelSerializer):
+    event_id = serializers.IntegerField(source='event.id', read_only=True)
+    event_title = serializers.CharField(source='event.title', read_only=True)
+    event_date = serializers.DateField(source='event.date', read_only=True)
+    event_location = serializers.CharField(source='event.location', read_only=True)
+    event_cover_image = serializers.CharField(source='event.cover_image', read_only=True)
+
+    class Meta:
+        model = EventBookmark
+        fields = [
+            'id', 'event', 'event_id', 'event_title', 'event_date',
+            'event_location', 'event_cover_image', 'created_at',
+        ]
+        read_only_fields = ['id', 'created_at']
 
 
 class ParticipantSerializer(serializers.Serializer):

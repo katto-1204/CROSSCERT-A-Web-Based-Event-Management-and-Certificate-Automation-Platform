@@ -1,5 +1,12 @@
 from django.contrib import admin
-from .models import Evaluation, UserProfile
+from .models import Evaluation, UserProfile, EventBookmark
+
+@admin.register(EventBookmark)
+class EventBookmarkAdmin(admin.ModelAdmin):
+    list_display = ('user', 'event', 'created_at')
+    list_filter = ('created_at',)
+    search_fields = ('user__email', 'event__title')
+    raw_id_fields = ('user', 'event')
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):

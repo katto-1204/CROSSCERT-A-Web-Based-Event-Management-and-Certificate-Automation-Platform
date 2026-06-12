@@ -1,6 +1,9 @@
 """
 Serializers for Event app.
 """
+from datetime import datetime, timedelta
+
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 from .models import Event, EventRegistration, CheckIn, Notification
@@ -74,6 +77,28 @@ class EventSerializer(serializers.ModelSerializer):
     def get_organizer_name(self, obj):
         return obj.organizer.get_full_name() or obj.organizer.username
 
+    def validate(self, data):
+        date = data.get('date') or (self.instance.date if self.instance else None)
+        start_time = data.get('start_time') or (self.instance.start_time if self.instance else None)
+        end_time = data.get('end_time') or (self.instance.end_time if self.instance else None)
+
+        if date and start_time:
+            start_dt = datetime.combine(date, start_time)
+            if timezone.is_naive(start_dt):
+                start_dt = timezone.make_aware(start_dt)
+            min_start = timezone.now() + timedelta(days=2)
+            if start_dt < min_start:
+                raise serializers.ValidationError({
+                    'date': 'Events must be scheduled at least 2 days in advance.',
+                })
+
+        if date and start_time and end_time and end_time <= start_time:
+            raise serializers.ValidationError({
+                'end_time': 'End time must be after start time.',
+            })
+
+        return data
+
 
 class EventRegistrationSerializer(serializers.ModelSerializer):
     """Serializer for EventRegistration model."""
@@ -126,6 +151,11 @@ class EventRegistrationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("This event is not yet open for registration.")
         if event.status == 'completed':
             raise serializers.ValidationError("This event has already ended.")
+
+        registration_count = event.registrations.count()
+        if event.capacity and registration_count >= event.capacity:
+            raise serializers.ValidationError("This event has reached its capacity.")
+
         return data
 
     def get_is_checked_out(self, obj):

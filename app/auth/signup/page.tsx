@@ -331,7 +331,7 @@ export default function SignUp() {
                 </button>
 
                 {showDepartmentDropdown && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-md z-50 max-h-60 overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-border rounded-md shadow-md z-50 max-h-60 overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
                     {departmentList.map((dept) => (
                       <button
                         key={dept}
@@ -340,7 +340,7 @@ export default function SignUp() {
                           setFormData(prev => ({ ...prev, department: dept, program: '' }))
                           setShowDepartmentDropdown(false)
                         }}
-                        className={`w-full text-left px-4 py-2.5 hover:bg-accent hover:text-accent-foreground transition-colors text-sm border-b border-border/50 last:border-0 ${formData.department === dept ? 'bg-primary/10 text-primary font-medium' : 'text-popover-foreground'
+                        className={`w-full text-left px-4 py-2.5 hover:bg-accent hover:text-accent-foreground transition-colors text-sm border-b border-border/50 last:border-0 ${formData.department === dept ? 'bg-primary/10 text-primary font-medium' : 'text-foreground'
                           }`}
                       >
                         {dept}
@@ -373,7 +373,7 @@ export default function SignUp() {
                 </button>
 
                 {showProgramDropdown && formData.department && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-md z-50 max-h-60 overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-border rounded-md shadow-md z-50 max-h-60 overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
                     {programs.map((program) => (
                       <button
                         key={program}
@@ -382,7 +382,7 @@ export default function SignUp() {
                           setFormData(prev => ({ ...prev, program }))
                           setShowProgramDropdown(false)
                         }}
-                        className={`w-full text-left px-4 py-2.5 hover:bg-accent hover:text-accent-foreground transition-colors text-sm border-b border-border/50 last:border-0 ${formData.program === program ? 'bg-primary/10 text-primary font-medium' : 'text-popover-foreground'
+                        className={`w-full text-left px-4 py-2.5 hover:bg-accent hover:text-accent-foreground transition-colors text-sm border-b border-border/50 last:border-0 ${formData.program === program ? 'bg-primary/10 text-primary font-medium' : 'text-foreground'
                           }`}
                       >
                         {program}

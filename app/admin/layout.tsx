@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { AdminSidebar } from '@/components/admin-sidebar'
 import { AdminTopbar } from '@/components/admin-topbar'
 import { CrosscertLogo } from '@/components/crosscert-logo'
+import { ensureCsrfToken } from '@/lib/api-config'
 
 export default function AdminLayout({
   children,
@@ -19,7 +20,9 @@ export default function AdminLayout({
     const userRole = localStorage.getItem('userRole')
     if (userRole !== 'admin') {
       router.push('/auth/signin')
+      return
     }
+    ensureCsrfToken().catch(() => {})
   }, [router])
 
   if (!mounted) return null

@@ -12,7 +12,7 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from events.models import Event, EventRegistration
 from certificates.models import Certificate
 from .serializers import CertificateSerializer, CertificateListSerializer, CertificateDetailSerializer
-from .generator import generate_certificate
+from .generator import generate_certificate, CertificateGenerator
 
 
 class CertificateViewSet(viewsets.ModelViewSet):
@@ -91,6 +91,46 @@ class CertificateViewSet(viewsets.ModelViewSet):
         certificate = self.get_object()
         serializer = CertificateDetailSerializer(certificate)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated], url_path='preview-sample')
+    def preview_sample(self, request):
+        """Generate a sample certificate PDF from mapping settings (no event required)."""
+        template_image = request.data.get('certificate_template_image')
+        if not template_image:
+            return Response(
+                {'error': 'certificate_template_image is required'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        coordinates = request.data.get('certificate_coordinates') or {}
+        font_styles = request.data.get('certificate_font_styles') or {}
+        sample_text = request.data.get('certificate_sample_text') or {}
+
+        participant_data = {
+            'name': sample_text.get('name', 'Juan Dela Cruz'),
+        }
+        event_data = {
+            'title': sample_text.get('event_title', 'Sample Event Title'),
+            'date': sample_text.get('date', 'January 01, 2025'),
+        }
+
+        try:
+            generator = CertificateGenerator()
+            pdf_base64 = generator.generate_certificate(
+                participant_data=participant_data,
+                event_data=event_data,
+                template_image=template_image,
+                coordinates=coordinates,
+                font_styles=font_styles,
+                sample_text=sample_text,
+                return_base64=True,
+            )
+            return Response({'pdf_base64': pdf_base64})
+        except Exception as exc:
+            return Response(
+                {'error': f'Failed to generate certificate sample: {exc}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
     def generate_certificate(self, request, pk=None):

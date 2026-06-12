@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Search, MapPin, Users, Clock, ArrowRight, ArrowLeft, Calendar, RefreshCw, Sparkles } from 'lucide-react'
-import { api } from '@/lib/api-config'
+import { api, apiCall } from '@/lib/api-config'
 import Image from 'next/image'
 import { useTheme } from 'next-themes'
 
@@ -58,7 +58,7 @@ export default function DiscoverPage() {
     try {
       const apiUrl = api.events()
       console.log('[Discover] Fetching events from:', apiUrl)
-      const res = await fetch(apiUrl)
+      const res = await apiCall.get(apiUrl)
       console.log('[Discover] Response status:', res.status, res.statusText)
 
       if (!res.ok) {

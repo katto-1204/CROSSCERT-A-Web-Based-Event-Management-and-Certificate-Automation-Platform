@@ -29,6 +29,7 @@ export const API_ROUTES = {
   evaluations: '/api/evaluations',
   certificates: '/api/certificates',
   notifications: '/api/notifications',
+  bookmarks: '/api/bookmarks',
 
   // Admin API routes (using dashes)
   admin: {
@@ -72,6 +73,8 @@ export const adminApi = {
     return url.endsWith('/') ? url : `${url}/`
   },
 
+  certificatePreviewSample: () => `${adminApi.certificates()}preview-sample/`,
+
   // Helper to get a specific event by ID
   eventById: (id: string | number) => `${getApiUrl(API_ROUTES.admin.events)}/${id}/`,
 
@@ -114,6 +117,10 @@ export const api = {
     const url = getApiUrl(API_ROUTES.notifications)
     return url.endsWith('/') ? url : `${url}/`
   },
+  bookmarks: () => {
+    const url = getApiUrl(API_ROUTES.bookmarks)
+    return url.endsWith('/') ? url : `${url}/`
+  },
   notificationById: (id: string | number) => {
     return `${api.notifications()}${id}/`
   },
@@ -150,11 +157,18 @@ export const authApi = {
 }
 
 /**
- * Get CSRF token from cookies
+ * Get CSRF token from cookies or localStorage
  */
 export function getCsrfToken(): string {
   if (typeof document === 'undefined') return ''
 
+  // 1. Try to get token from localStorage (useful for cross-domain requests where document.cookie is inaccessible)
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('csrfToken')
+    if (token) return token
+  }
+
+  // 2. Fall back to document.cookie
   const cookies = document.cookie.split(';')
   for (const cookie of cookies) {
     const [name, value] = cookie.trim().split('=')
@@ -166,23 +180,50 @@ export function getCsrfToken(): string {
 }
 
 /**
+ * Fetch and persist a fresh CSRF token from the backend.
+ */
+export async function ensureCsrfToken(): Promise<string> {
+  const existing = getCsrfToken()
+  if (existing) return existing
+
+  const csrfUrl = getApiUrl(API_ROUTES.auth.csrfToken)
+  const csrfResp = await fetch(csrfUrl, { credentials: 'include' })
+  if (!csrfResp.ok) {
+    throw new Error(`Failed to fetch CSRF token (${csrfResp.status})`)
+  }
+
+  const csrfData = await csrfResp.json()
+  if (!csrfData?.csrf_token) {
+    throw new Error('CSRF token missing from server response')
+  }
+
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('csrfToken', csrfData.csrf_token)
+  }
+
+  return csrfData.csrf_token
+}
+
+/**
  * Make an authenticated API request with CSRF token
  */
 export async function apiRequest<T = any>(
   url: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  retryOnCsrf = true
 ): Promise<Response> {
   const headers: Record<string, string> = {
     'Accept': 'application/json',
     ...(typeof options.headers === 'object' ? (options.headers as Record<string, string>) : {}),
   }
 
-  // Add CSRF token for POST, PUT, DELETE requests
   const method = (options.method || 'GET').toUpperCase()
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
-    const csrfToken = getCsrfToken()
-    if (csrfToken) {
+    try {
+      const csrfToken = await ensureCsrfToken()
       headers['X-CSRFToken'] = csrfToken
+    } catch (err) {
+      console.error('[API] Failed to ensure CSRF token:', err)
     }
   }
 
@@ -191,13 +232,48 @@ export async function apiRequest<T = any>(
     headers['Content-Type'] = 'application/json'
   }
 
-  console.log(`[API] ${method} ${url}`, { headers })
-
   const response = await fetch(url, {
     ...options,
     headers,
-    credentials: 'include', // Include cookies for session auth
+    credentials: 'include',
   })
+
+  // Retry once with a fresh token if Django middleware still rejects CSRF
+  if (
+    retryOnCsrf &&
+    response.status === 403 &&
+    ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)
+  ) {
+    try {
+      const errorBody = await response.clone().json()
+      const detail = String(errorBody?.detail || '')
+      if (detail.toLowerCase().includes('csrf')) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('csrfToken')
+        }
+        const freshToken = await ensureCsrfToken()
+        headers['X-CSRFToken'] = freshToken
+        return apiRequest(url, { ...options, headers }, false)
+      }
+    } catch {
+      // fall through to original response
+    }
+  }
+
+  // Automatically intercept and store any csrf_token returned in JSON responses
+  try {
+    const clone = response.clone()
+    const contentType = clone.headers.get('content-type')
+    if (contentType && contentType.includes('application/json')) {
+      clone.json().then(data => {
+        if (data && data.csrf_token && typeof window !== 'undefined') {
+          localStorage.setItem('csrfToken', data.csrf_token)
+        }
+      }).catch(() => {})
+    }
+  } catch {
+    // Ignore cloning errors
+  }
 
   return response
 }

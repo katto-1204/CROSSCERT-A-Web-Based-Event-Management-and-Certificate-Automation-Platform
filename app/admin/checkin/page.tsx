@@ -434,29 +434,27 @@ export default function AdminCheckIn() {
 
   return (
     <div className="min-h-screen bg-neutral-50/50 dark:bg-neutral-950 p-6 space-y-8 max-w-[1600px] mx-auto animate-in fade-in duration-500">
-      {/* Premium Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-8 shadow-sm">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-red-500/10 via-rose-500/5 to-transparent rounded-full blur-3xl -mr-48 -mt-48" />
+      {/* Friendly Header */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-rose-50 via-white to-amber-50/60 dark:from-neutral-900 dark:via-neutral-900 dark:to-rose-950/30 border border-rose-100 dark:border-neutral-800 p-8 shadow-sm">
+        <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-bl from-rose-200/40 via-transparent to-transparent dark:from-rose-900/20 rounded-full blur-3xl -mr-24 -mt-24" />
         <div className="relative">
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors mb-4 group"
+            className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors mb-5 group"
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            <span className="font-medium">Back</span>
+            <span className="font-medium">Go back</span>
           </button>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-600 to-rose-600 flex items-center justify-center shadow-lg shadow-red-500/30">
-              <Scan className="w-6 h-6 text-white" />
+          <div className="flex items-start gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-400 to-red-500 flex items-center justify-center shadow-lg shadow-rose-400/30 shrink-0">
+              <Users className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h1 className="text-4xl font-extrabold text-neutral-900 dark:text-white tracking-tight">Event Check-In</h1>
-              <p className="text-neutral-500 dark:text-neutral-400 text-lg mt-1">Scan QR codes to check in participants</p>
+              <h1 className="text-3xl md:text-4xl font-bold text-neutral-900 dark:text-white tracking-tight">Guest Check-In</h1>
+              <p className="text-neutral-600 dark:text-neutral-400 text-base md:text-lg mt-1 max-w-xl">
+                Welcome your attendees — just point the camera at their event pass.
+              </p>
             </div>
-          </div>
-          <div className="flex items-center gap-2 mt-4">
-            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-sm font-medium text-neutral-600 dark:text-neutral-300">System Ready</span>
           </div>
         </div>
       </div>
@@ -553,109 +551,132 @@ export default function AdminCheckIn() {
             </div>
           </Card>
 
-          {/* QR Scanner */}
-          <Card className="p-6 border border-neutral-200 dark:border-neutral-800 bg-white/50 dark:bg-neutral-900/50 backdrop-blur-sm shadow-sm space-y-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                <Camera className="w-5 h-5 text-red-600 dark:text-red-400" />
+          {/* Camera / pass scanner */}
+          <Card className="p-6 border border-rose-100 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm space-y-4 rounded-3xl">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-11 h-11 rounded-2xl bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center">
+                <Camera className="w-5 h-5 text-rose-600 dark:text-rose-400" />
               </div>
-              <h2 className="text-xl font-bold text-neutral-900 dark:text-white">QR Code Scanner</h2>
+              <div>
+                <h2 className="text-xl font-bold text-neutral-900 dark:text-white">Scan their pass</h2>
+                <p className="text-sm text-neutral-500 dark:text-neutral-400">Hold the phone steady — it finds the code automatically</p>
+              </div>
             </div>
 
             {cameraActive ? (
               <div className="space-y-4">
-                <div className="relative w-full bg-black rounded-xl overflow-hidden border-2 border-neutral-200 dark:border-neutral-700 shadow-lg" style={{ minHeight: '300px', maxHeight: '500px' }}>
+                <div className="relative w-full overflow-hidden rounded-3xl bg-neutral-900 shadow-xl" style={{ minHeight: '340px', maxHeight: '480px' }}>
                   <video
                     ref={videoRef}
                     autoPlay
                     playsInline
                     muted
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-cover"
                     style={{
                       display: 'block',
                       width: '100%',
-                      height: 'auto',
-                      maxHeight: '500px'
+                      minHeight: '340px',
+                      maxHeight: '480px',
                     }}
                   />
-                  {/* Enhanced Scanning Frame */}
-                  <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                    <div className="relative border-4 border-red-500 rounded-2xl animate-pulse" style={{
-                      width: '280px',
-                      height: '280px',
-                    }}>
-                      <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-red-500 -mt-1 -ml-1" />
-                      <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-red-500 -mt-1 -mr-1" />
-                      <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-red-500 -mb-1 -ml-1" />
-                      <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-red-500 -mb-1 -mr-1" />
-                    </div>
-                    {/* Scanning Line */}
-                    <div className="absolute w-[280px] h-1 bg-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.8)] animate-scan" />
+
+                  {/* Soft warm overlay — no grid or reticle */}
+                  <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/50 via-transparent to-black/20" />
+
+                  {/* Simple rounded frame */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-8">
+                    <div className="relative h-[min(58vw,260px)] w-[min(58vw,260px)] rounded-3xl border-[3px] border-white/70 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]" />
                   </div>
-                  {/* Status Indicator */}
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 backdrop-blur-md px-4 py-2 rounded-full flex items-center gap-2 border border-white/10">
-                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                    <span className="text-white text-sm font-medium">Scanning active...</span>
+
+                  {selectedEvent && (
+                    <div className="absolute top-4 left-4 right-4">
+                      <div className="inline-flex items-center gap-2 rounded-full bg-white/90 dark:bg-neutral-900/90 px-4 py-2 text-sm font-medium text-neutral-800 dark:text-white shadow-md backdrop-blur-sm max-w-full">
+                        <Calendar className="h-4 w-4 text-rose-500 shrink-0" />
+                        <span className="truncate">
+                          {events.find((e) => e.id.toString() === selectedEvent)?.title || 'Selected event'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="absolute bottom-5 left-1/2 -translate-x-1/2 w-[90%] max-w-sm">
+                    <div className="rounded-2xl bg-white/95 dark:bg-neutral-900/95 px-4 py-3 text-center text-sm text-neutral-700 dark:text-neutral-200 shadow-lg backdrop-blur-sm">
+                      Ask guests to open their <span className="font-semibold text-rose-600 dark:text-rose-400">Wallet</span> or event ticket
+                    </div>
                   </div>
                 </div>
-                <Button
-                  onClick={stopCamera}
-                  variant="outline"
-                  className="w-full border-neutral-200 dark:border-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-800"
-                >
-                  Stop Camera
-                </Button>
-                {/* Hidden Canvas for Processing */}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    onClick={stopCamera}
+                    variant="outline"
+                    className="w-full rounded-xl border-rose-200 dark:border-neutral-700 hover:bg-rose-50 dark:hover:bg-neutral-800"
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Close camera
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    className="w-full rounded-xl"
+                    onClick={() => setScannedCode('')}
+                    disabled={!scannedCode}
+                  >
+                    Start over
+                  </Button>
+                </div>
                 <canvas ref={canvasRef} className="hidden" />
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center h-[300px] border-2 border-dashed border-neutral-200 dark:border-neutral-800 rounded-xl bg-neutral-50 dark:bg-neutral-900/50">
-                <div className="w-16 h-16 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center mb-4">
-                  <Camera className="w-8 h-8 text-neutral-400" />
+              <div className="relative flex flex-col items-center justify-center overflow-hidden rounded-3xl border-2 border-dashed border-rose-200 dark:border-neutral-700 bg-gradient-to-b from-rose-50/50 to-white dark:from-neutral-900 dark:to-neutral-950 px-6 py-14 text-center" style={{ minHeight: '340px' }}>
+                <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-rose-100 to-amber-100 dark:from-rose-900/40 dark:to-amber-900/20">
+                  <QrCode className="h-11 w-11 text-rose-500" />
                 </div>
-                <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-2">Camera is Inactive</h3>
-                <p className="text-neutral-500 dark:text-neutral-400 text-sm mb-6 max-w-xs text-center">
-                  Click the button below to start scanning QR codes for check-in
+                <h3 className="text-2xl font-bold text-neutral-900 dark:text-white mb-2">Ready when you are</h3>
+                <p className="text-neutral-600 dark:text-neutral-400 text-sm mb-8 max-w-xs leading-relaxed">
+                  Pick an event above, then open the camera. Guests show the QR on their phone — you&apos;re all set.
                 </p>
                 <Button
                   onClick={startCamera}
-                  className="bg-red-600 hover:bg-red-700 text-white min-w-[200px]"
+                  className="bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white min-w-[220px] h-12 rounded-xl shadow-lg shadow-rose-500/25 text-base font-semibold"
                   disabled={!selectedEvent}
                 >
-                  <Scan className="w-4 h-4 mr-2" />
-                  Start Scanning
+                  <Camera className="w-5 h-5 mr-2" />
+                  Open camera
                 </Button>
+                {!selectedEvent && (
+                  <p className="mt-4 text-xs text-neutral-500">Select an event first</p>
+                )}
               </div>
             )}
 
-            {/* Manual Action Buttons */}
-            <div className="pt-4 border-t border-neutral-100 dark:border-neutral-800 space-y-4">
+            {/* Check-in actions */}
+            <div className="pt-4 border-t border-rose-100 dark:border-neutral-800 space-y-4">
               <Input
-                placeholder="Scanned code will appear here..."
+                placeholder="Pass code appears here after scanning…"
                 value={scannedCode}
                 onChange={(e) => setScannedCode(e.target.value)}
-                className="bg-white dark:bg-neutral-900 text-center font-mono text-lg tracking-wider"
+                className="bg-rose-50/50 dark:bg-neutral-900 text-center text-base rounded-xl border-rose-100 dark:border-neutral-800"
               />
 
               {selectedEvent && events.find(e => e.id.toString() === selectedEvent)?.status?.toLowerCase() === 'live' && (
                 <Button
                   onClick={processCheckIn}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white font-bold text-lg py-6 shadow-lg shadow-green-500/20"
+                  className="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-bold text-lg py-6 rounded-2xl shadow-lg shadow-green-500/20"
                   disabled={!scannedCode}
                 >
                   <CheckCircle2 className="w-6 h-6 mr-2" />
-                  CHECK IN PARTICIPANT
+                  Welcome guest — check in
                 </Button>
               )}
 
               {selectedEvent && (['completed', 'concluded', 'paused'].includes(events.find(e => e.id.toString() === selectedEvent)?.status?.toLowerCase() || '')) && (
                 <Button
                   onClick={processCheckOut}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg py-6 shadow-lg shadow-blue-500/20"
+                  className="w-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white font-bold text-lg py-6 rounded-2xl shadow-lg shadow-blue-500/20"
                   disabled={!scannedCode}
                 >
                   <CheckCircle2 className="w-6 h-6 mr-2" />
-                  CHECK OUT PARTICIPANT
+                  Check out guest
                 </Button>
               )}
             </div>
@@ -666,8 +687,8 @@ export default function AdminCheckIn() {
         <div className="space-y-6">
           <Card className="p-6 border border-neutral-200 dark:border-neutral-800 bg-white/50 dark:bg-neutral-900/50 backdrop-blur-sm shadow-sm h-full">
             <h2 className="text-xl font-bold text-neutral-900 dark:text-white mb-6 flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-red-500" />
-              Live Stats
+              <BarChart3 className="w-5 h-5 text-rose-500" />
+              Today at a glance
             </h2>
 
             <div className="space-y-4">
@@ -788,11 +809,11 @@ export default function AdminCheckIn() {
 
       <style jsx>{`
         @keyframes scan {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(280px); }
+          0%, 100% { top: 8%; opacity: 0.35; }
+          50% { top: 88%; opacity: 1; }
         }
         .animate-scan {
-          animation: scan 2s ease-in-out infinite;
+          animation: scan 2.4s ease-in-out infinite;
         }
         @keyframes shake {
           0%, 100% { transform: translateX(0); }

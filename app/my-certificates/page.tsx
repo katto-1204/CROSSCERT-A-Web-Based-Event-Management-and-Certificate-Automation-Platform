@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Download, Eye, Share2, Award } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { api } from '@/lib/api-config'
+import { api, apiCall } from '@/lib/api-config'
 
 type CertificateRecord = {
   id: number
@@ -32,7 +32,7 @@ export default function MyCertificatesPage() {
             ? `${api.certificates()}/?participant_email=${encodeURIComponent(email)}`
             : api.certificates()
 
-        const res = await fetch(url)
+        const res = await apiCall.get(url)
         if (!res.ok) {
           throw new Error('Unable to load certificates.')
         }
