@@ -197,7 +197,6 @@ export function Step6Review() {
                         )}
 
                         {w.coverImage ? (
-                          // eslint-disable-next-line @next/next/no-img-element
                           <img
                             src={w.coverImage}
                             alt="Event Cover"

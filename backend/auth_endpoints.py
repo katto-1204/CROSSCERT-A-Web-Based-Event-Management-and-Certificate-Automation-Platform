@@ -17,11 +17,8 @@ import json
 import random
 import string
 from datetime import datetime, timedelta
+from crosscert.otp_store import save_otp, get_otp, delete_otp, cleanup_expired_tokens
 import hashlib
-
-# In-memory storage for OTP tokens (for production, use database or cache like Redis)
-# Structure: {email: {'otp': '123456', 'expires_at': datetime, 'verified': False, 'reset_token': str}}
-_password_reset_tokens = {}
 
 
 def generate_otp():
@@ -34,15 +31,6 @@ def generate_reset_token(email):
     random_string = ''.join(random.choices(string.ascii_letters + string.digits, k=32))
     token_string = f"{email}{random_string}{datetime.now().isoformat()}"
     return hashlib.sha256(token_string.encode()).hexdigest()[:32]
-
-
-def cleanup_expired_tokens():
-    """Remove expired tokens from memory."""
-    now = datetime.now()
-    expired = [email for email, data in _password_reset_tokens.items() 
-               if data['expires_at'] < now]
-    for email in expired:
-        del _password_reset_tokens[email]
 
 
 @require_http_methods(["POST"])
@@ -83,14 +71,14 @@ def forgot_password_endpoint(request):
         otp = generate_otp()
         expires_at = datetime.now() + timedelta(minutes=10)
         
-        # Store the OTP
-        _password_reset_tokens[email] = {
+        # Store the OTP in cache (Redis in production)
+        save_otp(email, {
             'otp': otp,
-            'expires_at': expires_at,
+            'expires_at': expires_at.isoformat(),
             'verified': False,
             'reset_token': None,
             'user_id': user.id,
-        }
+        }, ttl=600)
         
         # Send email with OTP
         try:
@@ -252,7 +240,7 @@ def verify_otp_endpoint(request):
             }, status=400)
         
         # Check if we have a token for this email
-        token_data = _password_reset_tokens.get(email)
+        token_data = get_otp(email)
         
         if not token_data:
             return JsonResponse({
@@ -260,27 +248,25 @@ def verify_otp_endpoint(request):
                 'error': 'No password reset request found. Please request a new OTP.',
             }, status=400)
         
-        # Check if OTP is expired
-        if token_data['expires_at'] < datetime.now():
-            del _password_reset_tokens[email]
+        expires_at = datetime.fromisoformat(token_data['expires_at'])
+        if expires_at < datetime.now():
+            delete_otp(email)
             return JsonResponse({
                 'success': False,
                 'error': 'OTP has expired. Please request a new one.',
             }, status=400)
         
-        # Check if OTP matches
         if token_data['otp'] != otp:
             return JsonResponse({
                 'success': False,
                 'error': 'Invalid OTP code.',
             }, status=400)
         
-        # OTP is valid - generate reset token
         reset_token = generate_reset_token(email)
-        _password_reset_tokens[email]['verified'] = True
-        _password_reset_tokens[email]['reset_token'] = reset_token
-        # Extend expiry for password reset step
-        _password_reset_tokens[email]['expires_at'] = datetime.now() + timedelta(minutes=15)
+        token_data['verified'] = True
+        token_data['reset_token'] = reset_token
+        token_data['expires_at'] = (datetime.now() + timedelta(minutes=15)).isoformat()
+        save_otp(email, token_data, ttl=900)
         
         return JsonResponse({
             'success': True,
@@ -334,7 +320,7 @@ def reset_password_endpoint(request):
             }, status=400)
         
         # Check if we have a verified token for this email
-        token_data = _password_reset_tokens.get(email)
+        token_data = get_otp(email)
         
         if not token_data:
             return JsonResponse({
@@ -354,21 +340,19 @@ def reset_password_endpoint(request):
                 'error': 'Invalid reset token.',
             }, status=400)
         
-        if token_data['expires_at'] < datetime.now():
-            del _password_reset_tokens[email]
+        expires_at = datetime.fromisoformat(token_data['expires_at'])
+        if expires_at < datetime.now():
+            delete_otp(email)
             return JsonResponse({
                 'success': False,
                 'error': 'Reset token has expired. Please start over.',
             }, status=400)
         
-        # Get user and update password
         try:
             user = User.objects.get(id=token_data['user_id'])
             user.set_password(new_password)
             user.save()
-            
-            # Clear the token
-            del _password_reset_tokens[email]
+            delete_otp(email)
             
             return JsonResponse({
                 'success': True,

@@ -335,7 +335,6 @@ export default function ParticipantDashboard() {
                 <div key={event.id} className="group flex gap-3 p-3 rounded-xl border border-neutral-200 dark:border-neutral-800 hover:shadow-lg hover:border-red-500 dark:hover:border-red-500 transition-all cursor-pointer" onClick={() => router.push(`/participant/event/${event.id}`)}>
                   <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
                     {(event.coverImage || event.cover_image) ? (
-                      // eslint-disable-next-line @next/next/no-img-element
                       <img src={event.coverImage || event.cover_image || ''} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-red-500/20 to-rose-500/20" />
@@ -392,7 +391,6 @@ export default function ParticipantDashboard() {
                 <div key={event.id} className="group flex gap-3 p-3 rounded-xl border border-neutral-200 dark:border-neutral-800 opacity-70 hover:opacity-100 hover:shadow-lg transition-all cursor-pointer" onClick={() => router.push(`/participant/event/${event.id}`)}>
                   <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
                     {(event.coverImage || event.cover_image) ? (
-                      // eslint-disable-next-line @next/next/no-img-element
                       <img src={event.coverImage || event.cover_image || ''} alt="" className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-300" />
                     ) : (
                       <div className="w-full h-full bg-neutral-300 dark:bg-neutral-700" />

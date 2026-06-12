@@ -72,7 +72,6 @@ export function Step4Certificate() {
                     }}
                   >
                     {/* Template Image */}
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={template.path}
                       alt={template.name}

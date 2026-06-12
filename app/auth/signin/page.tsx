@@ -82,6 +82,8 @@ export default function SignIn() {
       // Determine role based on is_staff flag
       const userRole = data.user.is_staff ? 'admin' : 'participant'
       localStorage.setItem('userRole', userRole)
+      const { setAuthRoleCookie } = await import('@/lib/auth-utils')
+      setAuthRoleCookie(userRole as 'admin' | 'participant')
 
       // Note: User profile data (name, department, program) is now fetched from API
       // when needed, not stored in localStorage

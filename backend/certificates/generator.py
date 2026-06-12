@@ -306,50 +306,23 @@ def generate_certificates_for_event(event_id):
 def generate_certificate(registration):
     """
     Generate a certificate for a single registration.
-    
-    Args:
-        registration: EventRegistration instance
-        
-    Returns:
-        str: Path to the generated certificate file
+    Returns the Certificate model instance.
     """
-    from django.conf import settings
     from .models import Certificate as CertificateModel
-    from .services import CertificateService
-    import os
-    from datetime import datetime
-    
-    # Initialize the certificate service
-    cert_service = CertificateService()
-    
-    try:
-        # Check if certificate already exists
-        if hasattr(registration, 'certificate_record'):
-            return registration.certificate_record.pdf_file.path if registration.certificate_record.pdf_file else None
-        
-        # Generate the certificate
-        event = registration.event
-        participant_name = f"{registration.first_name} {registration.last_name}"
-        
-        # Create the certificate
-        cert_path = cert_service.generate_for_participant(
-            registration=registration,
-            event=event,
-            save_to_disk=True
-        )
-        
-        if not cert_path:
-            raise ValueError("Failed to generate certificate")
-            
-        # Create certificate record in the database
-        cert = CertificateModel.objects.create(
-            registration=registration,
-            certificate_file=cert_path,
-            issued_at=datetime.now()
-        )
-        
-        return cert_path
-        
-    except Exception as e:
-        print(f"Error generating certificate: {str(e)}")
-        raise
+    import uuid as uuid_lib
+    from django.utils import timezone
+
+    if hasattr(registration, 'certificate_record'):
+        return registration.certificate_record
+
+    service = CertificateService()
+    event = registration.event
+    pdf_base64 = service.generate_for_participant(registration, event, save_to_disk=False)
+    cert_number = f"CERT-{event.id}-{uuid_lib.uuid4().hex[:8].upper()}"
+    return CertificateModel.objects.create(
+        registration=registration,
+        certificate_number=cert_number,
+        pdf_base64=pdf_base64,
+        status='generated',
+        issue_date=timezone.now().date(),
+    )

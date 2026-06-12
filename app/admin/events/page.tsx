@@ -524,7 +524,6 @@ export default function AdminEvents() {
                               >
                                 <div className="relative h-48 overflow-hidden cursor-pointer" onClick={() => router.push(`/admin/events/${event.id}`)}>
                                   {(event.coverImage || event.cover_image) ? (
-                                    // eslint-disable-next-line @next/next/no-img-element
                                     <img
                                       src={event.coverImage || event.cover_image || ''}
                                       alt={event.name || event.title}
@@ -610,7 +609,6 @@ export default function AdminEvents() {
                               >
                                 <div className="relative h-48 overflow-hidden">
                                   {(event.coverImage || event.cover_image) ? (
-                                    // eslint-disable-next-line @next/next/no-img-element
                                     <img
                                       src={event.coverImage || event.cover_image || ''}
                                       alt={event.name || event.title}

@@ -303,7 +303,6 @@ export default function MyEvents() {
                     {/* Left: Image & Date */}
                     <div className="w-full md:w-48 h-48 md:h-auto relative bg-neutral-100 dark:bg-neutral-800">
                       {(event.coverImage || event.cover_image) ? (
-                        // eslint-disable-next-line @next/next/no-img-element
                         <img src={event.coverImage || event.cover_image || ''} alt="" className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-red-500/20 to-rose-500/20" />
@@ -426,7 +425,6 @@ export default function MyEvents() {
                     {/* Left: Image & Date */}
                     <div className="w-full md:w-48 h-48 md:h-auto relative bg-neutral-100 dark:bg-neutral-800">
                       {(event.coverImage || event.cover_image) ? (
-                        // eslint-disable-next-line @next/next/no-img-element
                         <img src={event.coverImage || event.cover_image || ''} alt="" className="w-full h-full object-cover opacity-60" />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-neutral-300 to-neutral-400" />
