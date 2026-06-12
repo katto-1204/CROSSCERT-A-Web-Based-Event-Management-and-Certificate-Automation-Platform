@@ -2,7 +2,7 @@
 
 import { useRouter, usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { LayoutDashboard, Calendar, Bookmark, Award, Settings, LogOut, Menu, X, Sparkles, CalendarCheck, Wallet, Bell } from 'lucide-react'
+import { LayoutDashboard, Calendar, Bookmark, Award, Settings, LogOut, Search, Menu, X, Sparkles, CalendarCheck, Wallet } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { useTheme } from 'next-themes'
@@ -31,7 +31,6 @@ export function ParticipantSidebar() {
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/participant/dashboard', color: 'text-red-500' },
     { icon: Wallet, label: 'Wallet', href: '/participant/wallet', color: 'text-rose-500' },
-    { icon: Bell, label: 'Notifications', href: '/participant/notifications', color: 'text-amber-500' },
     { icon: Calendar, label: 'Events', href: '/participant/events', color: 'text-orange-500' },
     { icon: Bookmark, label: 'Bookmarks', href: '/participant/bookmarks', color: 'text-yellow-500' },
     { icon: CalendarCheck, label: 'My Events', href: '/participant/my-events', color: 'text-green-500' },

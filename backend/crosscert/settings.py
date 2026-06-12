@@ -138,14 +138,15 @@ os.makedirs(os.path.join(MEDIA_ROOT, CERTIFICATE_UPLOAD_TO), exist_ok=True)
 os.makedirs(os.path.join(MEDIA_ROOT, CERTIFICATE_TEMPLATE_UPLOAD_TO), exist_ok=True)
 os.makedirs(os.path.dirname(DEFAULT_FONT), exist_ok=True)
 
-# Email Configuration (Gmail SMTP) — credentials from environment only
+# Email Configuration (Gmail SMTP)
+# Prefer environment variables, but fall back to the provided Gmail app password for local/dev
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
-EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
-EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
-EMAIL_HOST_USER = os.getenv('SENDER_EMAIL', '')
-EMAIL_HOST_PASSWORD = os.getenv('SENDER_PASSWORD', '')
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'noreply@crosscert.local')
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv('SENDER_EMAIL', 'crosscert.dvo@gmail.com')
+EMAIL_HOST_PASSWORD = os.getenv('SENDER_PASSWORD', 'bpoj jamo wdzh ewui')
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # REST Framework configuration
 REST_FRAMEWORK = {
@@ -164,24 +165,9 @@ REST_FRAMEWORK = {
     ],
 }
 
-FRONTEND_BASE_URL = os.getenv('FRONTEND_BASE_URL', os.getenv('FRONTEND_URL', 'https://crosscert.vercel.app')).rstrip('/')
-
-_cors_origin_candidates = [
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'https://crosscert.vercel.app',
-    'https://crosscert-kat-arnados-projects.vercel.app',
-    FRONTEND_BASE_URL,
-    os.getenv('FRONTEND_URL', '').rstrip('/'),
-]
-_vercel_url = os.getenv('VERCEL_URL', '').strip()
-if _vercel_url:
-    _cors_origin_candidates.append(
-        _vercel_url if _vercel_url.startswith('http') else f'https://{_vercel_url}'
-    )
-CORS_ALLOWED_ORIGINS = list(dict.fromkeys(origin for origin in _cors_origin_candidates if origin))
-CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
+FRONTEND_BASE_URL = os.getenv('FRONTEND_BASE_URL', os.getenv('FRONTEND_URL', 'https://crosscert.vercel.app')).rstrip('/')
 
 from corsheaders.defaults import default_headers
 CORS_ALLOW_HEADERS = list(default_headers) + [

@@ -159,6 +159,7 @@ export default function BookmarksPage() {
                 {/* Image */}
                 <div className="relative h-48 overflow-hidden">
                   {(event.coverImage || event.cover_image) ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={event.coverImage || event.cover_image || ''}
                       alt={event.name || event.title || 'Event cover'}

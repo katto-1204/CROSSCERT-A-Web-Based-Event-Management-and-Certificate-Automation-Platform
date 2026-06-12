@@ -2,18 +2,6 @@
  * Utility functions for authentication and localStorage management
  */
 
-const ROLE_COOKIE = 'crosscert_role'
-
-export function setAuthRoleCookie(role: 'admin' | 'participant'): void {
-  if (typeof document === 'undefined') return
-  document.cookie = `${ROLE_COOKIE}=${role}; path=/; max-age=86400; SameSite=Lax`
-}
-
-export function clearAuthRoleCookie(): void {
-  if (typeof document === 'undefined') return
-  document.cookie = `${ROLE_COOKIE}=; path=/; max-age=0; SameSite=Lax`
-}
-
 /**
  * Clear all localStorage data related to the application
  */
@@ -90,7 +78,7 @@ export function clearAllLocalStorage(): void {
 export async function performLogout(apiLogout: boolean = true): Promise<void> {
   console.log('[Logout] Starting logout process...')
 
-  clearAuthRoleCookie()
+  // Clear all localStorage data
   clearAllLocalStorage()
 
   // Optionally call API logout endpoint

@@ -4,40 +4,38 @@ Format: **test name — # of tests — date — status**
 
 | Test name | # tests | Date | Status | Notes |
 |-----------|---------|------|--------|-------|
-| django-system-check | 1 | 2026-06-13 | **PASS** | `manage.py check` |
-| django-unit-tests | 11 | 2026-06-13 | **PASS** | auth, OTP, events, bookmarks |
-| typescript-compile | 1 | 2026-06-13 | **PASS** | `npm run test:types` |
-| eslint-config | 1 | 2026-06-13 | **PASS** | `eslint.config.mjs` added |
-| api-smoke | 7 | 2026-06-13 | **PASS** | restart backend for `/api/health/` |
-| browser-devtools | 0 | 2026-06-13 | **SKIP** | manual checklist provided |
+| django-system-check | 1 | 2026-06-13 | **PASS** | `manage.py check` — 0 issues |
+| django-unit-tests | 0 | 2026-06-13 | **SKIP** | No test files in repo |
+| typescript-compile | 1 | 2026-06-13 | **PASS** | `npx tsc --noEmit` — 0 errors |
+| eslint-lint | 0 | 2026-06-13 | **SKIP** | No `eslint.config.js`; eslint not in node_modules |
+| npm-test-script | 0 | 2026-06-13 | **SKIP** | No `"test"` script in package.json |
+| api-smoke | 7 | 2026-06-13 | **PARTIAL** | 6/7 pass — health endpoint 404 (server reload needed) |
+| browser-devtools | 0 | 2026-06-13 | **SKIP** | Chrome DevTools MCP not configured in this environment |
 
-**Overall: 21 automated checks — PASS**
+**Overall automated run:** 9 checks executed, **7 PASS**, **1 PARTIAL**, **3 SKIP**
 
 ---
 
-## Run commands
+## How to re-run
 
 ```powershell
-# Backend
+# Backend system check
 cd backend
 .\venv\Scripts\python.exe manage.py check
-.\venv\Scripts\python.exe manage.py test events participants crosscert
 
-# Frontend
-npm run test:types
-npm run lint
+# TypeScript
+npx tsc --noEmit
 
-# API smoke (backend running)
+# API smoke (backend must be running on :8000)
 .\backend\venv\Scripts\python.exe tests-\smoke_test_api.py
 ```
 
 ---
 
-## Test modules
+## Detailed logs
 
-| Module | Tests | Coverage |
-|--------|-------|----------|
-| `crosscert/test_core.py` | 5 | health, CSRF, auth/me, login, OTP cache |
-| `events/test_events.py` | 3 | date validation, public events list |
-| `participants/test_bookmarks.py` | 2 | bookmark toggle, bookmark ids |
-| `tests-/smoke_test_api.py` | 7 | live API endpoints |
+See individual files in this folder:
+- `django-system-check-1-2026-06-13-PASS.md`
+- `typescript-compile-1-2026-06-13-PASS.md`
+- `api-smoke-7-2026-06-13-PARTIAL.md`
+- `browser-manual-checklist-2026-06-13-SKIP.md`

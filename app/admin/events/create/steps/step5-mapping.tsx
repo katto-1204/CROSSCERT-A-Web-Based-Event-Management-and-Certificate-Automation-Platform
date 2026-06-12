@@ -77,6 +77,7 @@ export function Step5Mapping() {
               {w.certificateTemplate ? (
                 <>
                   {/* Template image — aspect ratio matches container so coordinates map 1:1 to PDF */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={w.certificateTemplate}
                     alt="Certificate template"
