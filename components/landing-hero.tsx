@@ -30,7 +30,12 @@ function Lanyard({ position = [0, 0, 17], gravity = [0, -10, 0], fov = 20, trans
   return (
     <div className="relative z-0 w-full h-[32rem] sm:h-[28rem] md:h-[32rem] lg:h-[36rem] xl:h-[44rem] flex justify-center items-center pointer-events-none">
       <div className="w-full h-full pointer-events-auto">
-        <Canvas camera={{ position, fov }} gl={{ alpha: transparent }} onCreated={({ gl }) => gl.setClearColor(new THREE.Color(0xffffff), transparent ? 0 : 1)}>
+        <Canvas
+          camera={{ position, fov }}
+          dpr={[1, 1.5]}
+          gl={{ alpha: transparent, antialias: true, powerPreference: 'high-performance' }}
+          onCreated={({ gl }) => gl.setClearColor(new THREE.Color(0xffffff), transparent ? 0 : 1)}
+        >
           <ambientLight intensity={Math.PI} />
           <Physics gravity={gravity} timeStep={1 / 60}>
             <Band />
@@ -57,12 +62,20 @@ function Band({ maxSpeed = 50, minSpeed = 0 }: BandProps) {
   const j3 = useRef<any>(null)
   const card = useRef<any>(null)
 
-  const vec = new THREE.Vector3()
-  const ang = new THREE.Vector3()
-  const rot = new THREE.Vector3()
-  const dir = new THREE.Vector3()
+  const { vec, ang, rot, dir } = useMemo(
+    () => ({
+      vec: new THREE.Vector3(),
+      ang: new THREE.Vector3(),
+      rot: new THREE.Vector3(),
+      dir: new THREE.Vector3(),
+    }),
+    [],
+  )
 
-  const segmentProps: any = { type: 'dynamic' as RigidBodyProps['type'], canSleep: true, colliders: false, angularDamping: 4, linearDamping: 4 }
+  const segmentProps: any = useMemo(
+    () => ({ type: 'dynamic' as RigidBodyProps['type'], canSleep: true, colliders: false, angularDamping: 4, linearDamping: 4 }),
+    [],
+  )
 
   const { nodes, materials } = useGLTF('/api/card.glb') as any
   const texture = useTexture('/lanyardcard/lanyard.png')
@@ -72,6 +85,14 @@ function Band({ maxSpeed = 50, minSpeed = 0 }: BandProps) {
   const [logoSize, setLogoSize] = useState<[number, number]>([0.9, 0.25])
   const logoPlane = useMemo(() => new THREE.PlaneGeometry(logoSize[0], logoSize[1]), [logoSize])
   const hcdcPlane = useMemo(() => new THREE.PlaneGeometry(0.4, 0.4), [])
+
+  useEffect(() => {
+    return () => logoPlane.dispose()
+  }, [logoPlane])
+
+  useEffect(() => {
+    return () => hcdcPlane.dispose()
+  }, [hcdcPlane])
 
   const [curve] = useState(() => new THREE.CatmullRomCurve3([new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()]))
   const [dragged, drag] = useState<false | THREE.Vector3>(false)

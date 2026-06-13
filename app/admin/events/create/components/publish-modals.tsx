@@ -1,6 +1,6 @@
 'use client'
 
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Upload, Check, AlertCircle, ArrowLeft } from 'lucide-react'
 
@@ -44,6 +44,11 @@ export function PublishModals({
           <DialogTitle className="sr-only">
             {publishStatus === 'loading' ? 'Publishing Event' : 'Event Published'}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            {publishStatus === 'loading'
+              ? 'The event is being created and published.'
+              : 'The event was published successfully.'}
+          </DialogDescription>
 
           {publishStatus === 'loading' ? (
             <div className="flex flex-col items-center justify-center space-y-4">
@@ -81,6 +86,9 @@ export function PublishModals({
       <Dialog open={showErrorModal} onOpenChange={setShowErrorModal}>
         <DialogContent className="sm:max-w-md text-center p-6">
           <DialogTitle className="sr-only">Validation Error</DialogTitle>
+          <DialogDescription className="sr-only">
+            The event could not be published because the schedule needs to be corrected.
+          </DialogDescription>
           <div className="flex flex-col items-center justify-center space-y-4 pt-4">
             <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
               <AlertCircle className="w-6 h-6 text-destructive" />

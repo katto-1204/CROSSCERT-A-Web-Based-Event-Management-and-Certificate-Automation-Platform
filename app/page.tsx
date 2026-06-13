@@ -2,12 +2,20 @@
 
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { useTheme } from 'next-themes'
 import { Navigation } from '@/components/navigation'
-import { LandingHero } from '@/components/landing-hero'
 import { WelcomeModal } from '@/components/welcome-modal'
+
+const LandingHero = dynamic(
+  () => import('@/components/landing-hero').then((mod) => mod.LandingHero),
+  {
+    ssr: false,
+    loading: () => <div className="min-h-[36rem]" aria-hidden="true" />,
+  },
+)
 
 export default function Home() {
   const router = useRouter()
@@ -81,7 +89,7 @@ export default function Home() {
       <div className="relative z-0">
         <WelcomeModal />
         <Navigation />
-        <LandingHero />
+        {!showSplash ? <LandingHero /> : <div className="min-h-[36rem]" aria-hidden="true" />}
 
         {/* Marquee */}
         <div className="py-2 sm:py-3 -mt-8 sm:-mt-30 overflow-hidden flex items-center justify-center marquee-mask">

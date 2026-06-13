@@ -8,7 +8,7 @@ import { Search, CheckCircle, Star, Filter, ArrowLeft, MessageSquare, Quote, Thu
 import { useState, useEffect } from 'react'
 import { api, apiCall, adminApi, getApiErrorMessage } from '@/lib/api-config'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 
 type EvaluationRecord = {
   id: number
@@ -311,6 +311,9 @@ export default function AdminEvaluations() {
       <Dialog open={!!selectedImage} onOpenChange={(open) => !open && setSelectedImage(null)}>
         <DialogContent className="max-w-4xl p-0 overflow-hidden bg-black border-none">
           <DialogTitle className="sr-only">Evaluation Photo</DialogTitle>
+          <DialogDescription className="sr-only">
+            Full-size preview of the photo attached to this evaluation.
+          </DialogDescription>
           <div className="relative w-full h-full flex items-center justify-center bg-black/50 backdrop-blur-3xl p-4">
             {selectedImage && (
               <img

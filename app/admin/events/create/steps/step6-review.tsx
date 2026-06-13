@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { Dialog, DialogContent, DialogTrigger, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogTrigger, DialogTitle } from '@/components/ui/dialog'
 import { ArrowLeft, Upload, MapPin, CalendarIcon, Clock, Users, Ruler, Eye, Palette, Edit, Globe, Lock, Ticket, CheckCircle, UserCheck, Building2, Tag, BookOpen, GraduationCap, FileText, Maximize2, Loader2, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -311,6 +311,9 @@ export function Step6Review() {
                       {/* Full Size Modal Content */}
                       <DialogContent className="max-w-4xl w-full p-0 overflow-hidden bg-transparent border-none shadow-none">
                         <DialogTitle className="sr-only">Certificate Full Preview</DialogTitle>
+                        <DialogDescription className="sr-only">
+                          Full-size preview of the selected certificate template and mapped text fields.
+                        </DialogDescription>
                         <div
                           ref={w.dialogCertificateRef}
                           className="relative w-full rounded-lg overflow-hidden shadow-2xl"

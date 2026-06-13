@@ -75,6 +75,9 @@ export default function AdminCheckIn() {
     code: string
   }[]>([])
 
+  const [showAlreadyModal, setShowAlreadyModal] = useState(false)
+  const [alreadyModalData, setAlreadyModalData] = useState<SuccessPass | null>(null)
+
   const addLog = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
     setLogs((prev) => [{ time, message, type }, ...prev].slice(0, 50))
@@ -277,6 +280,7 @@ export default function AdminCheckIn() {
     setShowErrorModal(true)
     playErrorBeep()
     addLog(`Error: ${message}`, 'error')
+    setScannedCode('')
   }
 
   // New Handler: Just capture the code, don't submit yet
@@ -385,20 +389,45 @@ export default function AdminCheckIn() {
 
   const handleApiSuccess = (data: Record<string, unknown>, action: 'check-in' | 'check-out', code: string) => {
     const already = Boolean(data.already_checked_in || data.already_checked_out)
-    showPassSuccess(data, action, code, already)
-    
     const name = String(data.participant_name ?? 'Guest')
-    const actionLabel = action === 'check-in' ? (already ? 'Already Checked In' : 'Checked In') : (already ? 'Already Checked Out' : 'Checked Out')
-    addLog(`${actionLabel} approved for: ${name} (${code})`, already ? 'info' : 'success')
     
-    // Add to recent activity
-    const newActivity = {
-      name,
-      action,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-      code
+    if (already) {
+      const event = events.find((e) => e.id.toString() === selectedEvent)
+      setAlreadyModalData({
+        participantName: name,
+        eventTitle: String(data.event_title ?? event?.title ?? 'Event'),
+        passCode: code,
+        location: event?.date ? `${event.date}` : undefined,
+        checkedInAt: data.checked_in_at
+          ? new Date(String(data.checked_in_at)).toLocaleString()
+          : new Date().toLocaleString(),
+        action,
+        alreadyPresent: true,
+      })
+      setShowAlreadyModal(true)
+      
+      const actionLabel = action === 'check-in' ? 'Already Checked In' : 'Already Checked Out'
+      addLog(`${actionLabel} detected for: ${name} (${code})`, 'error')
+      playErrorBeep()
+      if (hapticsEnabled && navigator.vibrate) {
+        navigator.vibrate([60, 40, 60])
+      }
+      setScannedCode('')
+    } else {
+      showPassSuccess(data, action, code, false)
+      
+      const actionLabel = action === 'check-in' ? 'Checked In' : 'Checked Out'
+      addLog(`${actionLabel} approved for: ${name} (${code})`, 'success')
+      
+      // Add to recent activity
+      const newActivity = {
+        name,
+        action,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        code
+      }
+      setRecentActivity(prev => [newActivity, ...prev].slice(0, 5))
     }
-    setRecentActivity(prev => [newActivity, ...prev].slice(0, 5))
 
     toast({
       title: already
@@ -515,7 +544,7 @@ export default function AdminCheckIn() {
               const notProcessing = !isProcessingScan
 
               // Only scan if no modals are open
-              const canScan = !showSuccess && !showErrorModal && !showNotStartedModal
+              const canScan = !showSuccess && !showErrorModal && !showNotStartedModal && !showAlreadyModal
 
               if (isReady && hasValidSize && notProcessing && canScan) {
                 try {
@@ -534,7 +563,7 @@ export default function AdminCheckIn() {
                   // ignore frame read errors
                 }
               }
-            }, 150) // Faster scanning interval 150ms
+            }, 100) // Faster scanning interval 100ms
           }, 500) // Shorter startup delay
 
           return () => {
@@ -548,7 +577,7 @@ export default function AdminCheckIn() {
     } else {
       if (scanIntervalRef.current) clearInterval(scanIntervalRef.current)
     }
-  }, [cameraActive, handleCodeScanned, isProcessingScan, showSuccess, showErrorModal, showNotStartedModal])
+  }, [cameraActive, handleCodeScanned, isProcessingScan, showSuccess, showErrorModal, showNotStartedModal, showAlreadyModal])
 
   const handleManualScan = () => {
     // Redundant now, kept for safety or if needed
@@ -1167,6 +1196,86 @@ export default function AdminCheckIn() {
 
       {/* Modals */}
       <NotStartedModal />
+
+      {/* Already Checked In / Checked Out Warning Modal */}
+      {showAlreadyModal && alreadyModalData && (
+        <div
+          className="fixed inset-0 bg-neutral-950/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in duration-200"
+          onClick={() => { setShowAlreadyModal(false); setAlreadyModalData(null) }}
+        >
+          <div
+            className="w-full max-w-sm animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="rounded-2xl bg-card border border-amber-500/30 dark:border-amber-500/20 shadow-xl overflow-hidden text-card-foreground">
+              {/* Header */}
+              <div className="p-5 border-b border-amber-500/20 dark:border-amber-500/10 bg-amber-500/5">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0">
+                    <AlertCircle className="w-6 h-6 text-amber-500" />
+                  </div>
+                  <div>
+                    <Badge className="text-[9px] tracking-wider uppercase bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 mb-1">
+                      Duplicate Scan Detected
+                    </Badge>
+                    <h3 className="text-lg font-bold tracking-tight text-foreground">
+                      {alreadyModalData.action === 'check-in' ? 'Already Checked In' : 'Already Checked Out'}
+                    </h3>
+                  </div>
+                </div>
+              </div>
+
+              {/* Body */}
+              <div className="p-5 space-y-4 text-xs">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground uppercase text-[9px] tracking-wider">Guest Name</p>
+                    <p className="font-bold text-sm truncate">{alreadyModalData.participantName}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground uppercase text-[9px] tracking-wider">Status</p>
+                    <p className="font-bold text-amber-500">
+                      {alreadyModalData.action === 'check-in' ? 'Already Present' : 'Already Left'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-muted-foreground uppercase text-[9px] tracking-wider">Target Event</p>
+                  <p className="font-medium text-foreground line-clamp-1">{alreadyModalData.eventTitle}</p>
+                </div>
+
+                <div className="space-y-1 font-mono">
+                  <p className="text-muted-foreground uppercase text-[9px] tracking-wider">Ticket Code</p>
+                  <p className="font-semibold text-muted-foreground truncate">{alreadyModalData.passCode}</p>
+                </div>
+
+                {alreadyModalData.checkedInAt && (
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground uppercase text-[9px] tracking-wider">
+                      {alreadyModalData.action === 'check-in' ? 'Originally Checked In' : 'Originally Checked Out'}
+                    </p>
+                    <p className="font-medium">{alreadyModalData.checkedInAt}</p>
+                  </div>
+                )}
+
+                <div className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/15 text-amber-700 dark:text-amber-400 text-[11px] leading-relaxed">
+                  This participant has already been {alreadyModalData.action === 'check-in' ? 'checked in' : 'checked out'} for this event. No further action is needed.
+                </div>
+              </div>
+
+              <div className="p-5 border-t dark:border-neutral-800 bg-muted/20">
+                <Button
+                  className="w-full h-10 rounded-md bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 hover:opacity-90 font-semibold text-xs"
+                  onClick={() => { setShowAlreadyModal(false); setAlreadyModalData(null) }}
+                >
+                  Dismiss &amp; Continue Scanning
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Success Modal — wallet-style pass card */}
       {showSuccess && successPass && (
