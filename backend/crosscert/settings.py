@@ -165,8 +165,15 @@ REST_FRAMEWORK = {
     ],
 }
 
-CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    'https://crosscert.vercel.app',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+]
+_frontend_url = os.getenv('FRONTEND_URL', '').strip().rstrip('/')
+if _frontend_url and _frontend_url not in CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGINS.append(_frontend_url)
 FRONTEND_BASE_URL = os.getenv('FRONTEND_BASE_URL', os.getenv('FRONTEND_URL', 'https://crosscert.vercel.app')).rstrip('/')
 
 from corsheaders.defaults import default_headers
