@@ -164,6 +164,17 @@ export default function AdminDashboard() {
     { label: 'Certificates Issued', value: stats.certificatesIssued.toString(), icon: Award, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/20', border: 'border-amber-100 dark:border-amber-800' },
   ]
 
+  // Skeleton row for event lists
+  const SkeletonRow = () => (
+    <div className="flex items-center gap-4 p-3">
+      <div className="w-12 h-12 rounded-lg bg-neutral-100 dark:bg-neutral-800 animate-pulse shrink-0" />
+      <div className="flex-1 space-y-2">
+        <div className="h-3.5 bg-neutral-100 dark:bg-neutral-800 rounded animate-pulse w-3/4" />
+        <div className="h-2.5 bg-neutral-100 dark:bg-neutral-800 rounded animate-pulse w-1/2" />
+      </div>
+    </div>
+  )
+
   const quickActions = [
     { title: 'Create Event', desc: 'New seminar or workshop', icon: Calendar, path: '/admin/events/create', color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/20' },
     { title: 'Manage Events', desc: 'Edit existing records', icon: MapPin, path: '/admin/events', color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-900/20' },
@@ -210,7 +221,11 @@ export default function AdminDashboard() {
                   <Icon className={`w-6 h-6 ${stat.color}`} />
                 </div>
                 <div>
-                  <h3 className="text-3xl font-bold text-neutral-800 dark:text-neutral-100 tracking-tight">{stat.value}</h3>
+                  {loading ? (
+                    <div className="h-8 w-16 bg-neutral-100 dark:bg-neutral-800 rounded-lg animate-pulse mb-1" />
+                  ) : (
+                    <h3 className="text-3xl font-bold text-neutral-800 dark:text-neutral-100 tracking-tight">{stat.value}</h3>
+                  )}
                   <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mt-1">{stat.label}</p>
                 </div>
               </div>
@@ -440,7 +455,9 @@ export default function AdminDashboard() {
               </div>
               <div className="p-2 space-y-1 overflow-y-auto max-h-[500px] min-h-[300px]">
                 {loading ? (
-                  <div className="p-8 text-center text-muted-foreground">Loading specific data...</div>
+                  <div className="space-y-1">
+                    {[...Array(4)].map((_, i) => <SkeletonRow key={i} />)}
+                  </div>
                 ) : filteredUpcoming.length > 0 ? (
                   filteredUpcoming.map(event => (
                     <div

@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, Sparkles } from 'lucide-react'
-import { useRef, useState, useEffect, useMemo } from 'react'
+import { useRef, useState, useEffect, useMemo, Component } from 'react'
 import { Canvas, extend, useFrame } from '@react-three/fiber'
 import { useGLTF, useTexture, Environment, Lightformer } from '@react-three/drei'
 import { BallCollider, CuboidCollider, Physics, RigidBody, useRopeJoint, useSphericalJoint, RigidBodyProps } from '@react-three/rapier'
@@ -12,13 +12,26 @@ import * as THREE from 'three'
 
 extend({ MeshLineGeometry, MeshLineMaterial })
 
-// TS: declare meshline elements for React Three Fiber so TSX recognizes them
 declare module '@react-three/fiber' {
   interface ThreeElements {
     meshLineGeometry: any
     meshLineMaterial: any
   }
 }
+
+class LanyardErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: any) {
+    super(props)
+    this.state = { hasError: false }
+  }
+  static getDerivedStateFromError() { return { hasError: true } }
+  componentDidCatch() {}
+  render() {
+    if (this.state.hasError) return <div className="w-full h-[32rem]" />
+    return this.props.children
+  }
+}
+
 type LanyardProps = {
   position?: [number, number, number]
   gravity?: [number, number, number]
@@ -28,27 +41,29 @@ type LanyardProps = {
 
 function Lanyard({ position = [0, 0, 17], gravity = [0, -10, 0], fov = 20, transparent = true }: LanyardProps) {
   return (
-    <div className="relative z-0 w-full h-[32rem] sm:h-[28rem] md:h-[32rem] lg:h-[36rem] xl:h-[44rem] flex justify-center items-center pointer-events-none">
-      <div className="w-full h-full pointer-events-auto">
-        <Canvas
-          camera={{ position, fov }}
-          dpr={[1, 1.5]}
-          gl={{ alpha: transparent, antialias: true, powerPreference: 'high-performance' }}
-          onCreated={({ gl }) => gl.setClearColor(new THREE.Color(0xffffff), transparent ? 0 : 1)}
-        >
-          <ambientLight intensity={Math.PI} />
-          <Physics gravity={gravity} timeStep={1 / 60}>
-            <Band />
-          </Physics>
-          <Environment blur={0.75}>
-            <Lightformer intensity={2} color="white" position={[0, -1, 5]} rotation={[0, 0, Math.PI / 3]} scale={[100, 0.1, 1]} />
-            <Lightformer intensity={3} color="white" position={[-1, -1, 1]} rotation={[0, 0, Math.PI / 3]} scale={[100, 0.1, 1]} />
-            <Lightformer intensity={3} color="white" position={[1, 1, 1]} rotation={[0, 0, Math.PI / 3]} scale={[100, 0.1, 1]} />
-            <Lightformer intensity={10} color="white" position={[-10, 0, 14]} rotation={[0, Math.PI / 2, Math.PI / 3]} scale={[100, 10, 1]} />
-          </Environment>
-        </Canvas>
+    <LanyardErrorBoundary>
+      <div className="relative z-0 w-full h-[32rem] sm:h-[28rem] md:h-[32rem] lg:h-[36rem] xl:h-[44rem] flex justify-center items-center pointer-events-none">
+        <div className="w-full h-full pointer-events-auto">
+          <Canvas
+            camera={{ position, fov }}
+            dpr={[1, 1.5]}
+            gl={{ alpha: transparent, antialias: true, powerPreference: 'high-performance' }}
+            onCreated={({ gl }) => gl.setClearColor(new THREE.Color(0xffffff), transparent ? 0 : 1)}
+          >
+            <ambientLight intensity={Math.PI} />
+            <Physics gravity={gravity} timeStep={1 / 60}>
+              <Band />
+            </Physics>
+            <Environment blur={0.75}>
+              <Lightformer intensity={2} color="white" position={[0, -1, 5]} rotation={[0, 0, Math.PI / 3]} scale={[100, 0.1, 1]} />
+              <Lightformer intensity={3} color="white" position={[-1, -1, 1]} rotation={[0, 0, Math.PI / 3]} scale={[100, 0.1, 1]} />
+              <Lightformer intensity={3} color="white" position={[1, 1, 1]} rotation={[0, 0, Math.PI / 3]} scale={[100, 0.1, 1]} />
+              <Lightformer intensity={10} color="white" position={[-10, 0, 14]} rotation={[0, Math.PI / 2, Math.PI / 3]} scale={[100, 10, 1]} />
+            </Environment>
+          </Canvas>
+        </div>
       </div>
-    </div>
+    </LanyardErrorBoundary>
   )
 }
 
@@ -77,7 +92,7 @@ function Band({ maxSpeed = 50, minSpeed = 0 }: BandProps) {
     [],
   )
 
-  const { nodes, materials } = useGLTF('/api/card.glb') as any
+  const { nodes, materials } = useGLTF('/lanyardcard/card.glb') as any
   const texture = useTexture('/lanyardcard/lanyard.png')
   const ccLogo = useTexture('/crosscert-logo.png')
   const hcdcLogo = useTexture('/hcdc black.png')
@@ -109,9 +124,8 @@ function Band({ maxSpeed = 50, minSpeed = 0 }: BandProps) {
   useEffect(() => {
     if (!ccLogo) return
     ccLogo.wrapS = ccLogo.wrapT = THREE.RepeatWrapping
-    ccLogo.offset.set(0, 0) // center horizontally
+    ccLogo.offset.set(0, 0)
     ccLogo.needsUpdate = true
-    // Fit plane to the logo texture aspect ratio to avoid stretching
     const img: any = ccLogo.image
     if (img?.width && img?.height) {
       const aspect = img.width / img.height
@@ -161,16 +175,13 @@ function Band({ maxSpeed = 50, minSpeed = 0 }: BandProps) {
   curve.curveType = 'chordal'
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping
 
-  // Define scale, position and line width based on screen size
   const cardScale = isSmall ? 2.0 : 2.6
-  // The y-position here is calibrated to keep the top of the card aligned with the joint anchor at 1.45
   const cardPosition: [number, number, number] = isSmall ? [0, -0.6, -0.05] : [0, -1.2, -0.05]
   const bandWidth = isSmall ? 1.4 : 2.2
 
   return (
     <>
       <group position={[0, 3.2, 0]}>
-        {/* Bring the lanyard and ID card a bit down to make them visible */}
         <RigidBody ref={fixed} {...segmentProps} type={'fixed' as RigidBodyProps['type']} position={[0, 1, 0]} />
         <RigidBody position={[0.3, 1, 0]} ref={j1} {...segmentProps} type={'dynamic' as RigidBodyProps['type']}><BallCollider args={[0.13]} /></RigidBody>
         <RigidBody position={[0.6, 1, 0]} ref={j2} {...segmentProps} type={'dynamic' as RigidBodyProps['type']}><BallCollider args={[0.13]} /></RigidBody>
@@ -178,20 +189,15 @@ function Band({ maxSpeed = 50, minSpeed = 0 }: BandProps) {
         <RigidBody position={[1.2, 0, 0]} ref={card} {...segmentProps} type={dragged ? ('kinematicPosition' as RigidBodyProps['type']) : ('dynamic' as RigidBodyProps['type'])}>
           <CuboidCollider args={[0.8, 1.125, 0.01]} />
           <group scale={cardScale} position={cardPosition} onPointerOver={() => hover(true)} onPointerOut={() => hover(false)} onPointerUp={(e: any) => { e.target.releasePointerCapture(e.pointerId); drag(false) }} onPointerDown={(e: any) => { e.target.setPointerCapture(e.pointerId); drag(new THREE.Vector3().copy(e.point).sub(vec.copy(card.current.translation()))) }}>
-            {/* White card base */}
             <mesh geometry={nodes.card.geometry}>
               <meshPhysicalMaterial color={new THREE.Color('#ffffff')} clearcoat={1} clearcoatRoughness={0.15} roughness={0.6} metalness={0.1} />
             </mesh>
-            {/* Logo overlay centered, raised, and forward to avoid z-fighting */}
             <mesh geometry={logoPlane} position={[0, 0.55, 0.006]}>
               <meshBasicMaterial map={ccLogo} transparent alphaTest={0.05} toneMapped={false} />
             </mesh>
-
-            {/* Back Logo - HCDC Black */}
             <mesh geometry={hcdcPlane} position={[0, 0.5, -0.006]} rotation={[0, Math.PI, 0]}>
               <meshBasicMaterial map={hcdcLogo} transparent alphaTest={0.05} toneMapped={false} />
             </mesh>
-
             <mesh geometry={nodes.clip.geometry} material={materials.metal} material-roughness={0.3} />
             <mesh geometry={nodes.clamp.geometry} material={materials.metal} />
           </group>
@@ -241,18 +247,15 @@ export function LandingHero() {
               onMouseLeave={resetTilt}
               className="relative w-full aspect-square max-w-none sm:max-w-md flex items-center justify-center pointer-events-auto"
             >
-              {/* Animated color-cycling glow behind the logo */}
               <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 sm:w-80 sm:h-80 rounded-full blur-3xl opacity-80 glow-cycle" />
-              {/* Logo */}
               <div className="relative w-full">
                 <Lanyard position={[0, 0, 18]} gravity={[0, -40, 0]} />
               </div>
             </div>
           </div>
 
-          {/* Left Content (Under lanyard on mobile, Left on desktop) */}
+          {/* Left Content */}
           <div className="space-y-6 sm:space-y-8 text-center lg:text-left flex flex-col items-center lg:items-start relative">
-            {/* Text at Lower Layer */}
             <div className="space-y-3 sm:space-y-4 relative z-10 pt-4 sm:pt-0">
               <div className="inline-block px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border transition-colors bg-red-50 border-red-200 text-red-700 dark:bg-white/10 dark:border-white/10 dark:text-zinc-200 dark:backdrop-blur-md">
                 <span className="font-semibold text-xs sm:text-sm flex items-center gap-2">
@@ -268,7 +271,6 @@ export function LandingHero() {
               </p>
             </div>
 
-            {/* Buttons at Layer (above lanyard visually, but z-index managed for overlap) */}
             <div className="relative z-[60] flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto">
               <Button
                 size="lg"
@@ -288,7 +290,6 @@ export function LandingHero() {
               </Button>
             </div>
 
-            {/* Trust Indicators - Desktop only or spaced for mobile */}
             <div className="pt-6 sm:pt-8 border-t border-border w-full hidden sm:block">
               <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">Trusted by leading institutions</p>
               <div className="flex flex-col sm:flex-row flex-wrap gap-4 sm:gap-6 md:gap-8 items-start sm:items-center opacity-60">
@@ -303,4 +304,3 @@ export function LandingHero() {
     </div>
   )
 }
-

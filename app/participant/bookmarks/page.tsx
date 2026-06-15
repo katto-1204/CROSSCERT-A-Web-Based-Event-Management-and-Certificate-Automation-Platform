@@ -49,9 +49,12 @@ export default function BookmarksPage() {
   const router = useRouter()
   const [bookmarked, setBookmarked] = useState<Set<string>>(new Set())
   const [events, setEvents] = useState<Event[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [bookmarkLoading, setBookmarkLoading] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     const fetchEvents = async () => {
+      setIsLoading(true)
       try {
         const eventsUrl = api.events().endsWith('/') ? api.events() : `${api.events()}/`
         const res = await apiCall.get(eventsUrl)
@@ -91,36 +94,104 @@ export default function BookmarksPage() {
 
         const ids = await fetchBookmarkIds()
         setBookmarked(ids)
+      } finally {
+        setIsLoading(false)
       }
     }
 
     fetchEvents()
+
+    // Refresh bookmark IDs whenever localStorage changes from another tab/page
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'bookmarkedEvents') {
+        fetchBookmarkIds().then(ids => setBookmarked(ids))
+      }
+    }
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
   }, [])
 
   const toggleBookmark = async (id: string | number) => {
     const sid = String(id)
     const wasBookmarked = bookmarked.has(sid)
-    const optimistic = new Set(bookmarked)
-    if (wasBookmarked) optimistic.delete(sid)
-    else optimistic.add(sid)
-    setBookmarked(optimistic)
+
+    // Optimistic update
+    setBookmarked(prev => {
+      const next = new Set(prev)
+      if (wasBookmarked) next.delete(sid)
+      else next.add(sid)
+      return next
+    })
+    setBookmarkLoading(prev => new Set(prev).add(sid))
 
     try {
       const nowBookmarked = await syncToggleBookmark(id)
-      setBookmarked((prev) => {
+      setBookmarked(prev => {
         const next = new Set(prev)
         if (nowBookmarked) next.add(sid)
         else next.delete(sid)
         return next
       })
     } catch {
-      setBookmarked(bookmarked)
+      // Revert on error
+      setBookmarked(prev => {
+        const next = new Set(prev)
+        if (wasBookmarked) next.add(sid)
+        else next.delete(sid)
+        return next
+      })
+    } finally {
+      setBookmarkLoading(prev => {
+        const next = new Set(prev)
+        next.delete(sid)
+        return next
+      })
     }
   }
 
   const bookmarkedEvents = events.filter((event) => {
     return bookmarked.has(String(event.id))
   })
+
+  // ---- Loading skeleton ----
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-neutral-50/50 dark:bg-neutral-950 p-6 space-y-8 max-w-[1600px] mx-auto animate-in fade-in duration-500">
+        <div className="space-y-4">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-2 text-neutral-500 hover:text-red-500 dark:text-neutral-400 dark:hover:text-red-400 transition-colors group"
+          >
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            <span className="font-medium">Back</span>
+          </button>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Bookmark className="w-6 h-6 text-red-500 dark:text-red-400 fill-red-500 dark:fill-red-400" />
+              <h1 className="text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">Bookmarked Events</h1>
+            </div>
+            <p className="text-neutral-500 dark:text-neutral-400">Events you've saved for quick access</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 overflow-hidden animate-pulse">
+              <div className="h-48 bg-neutral-200 dark:bg-neutral-800" />
+              <div className="p-5 space-y-3">
+                <div className="h-5 bg-neutral-200 dark:bg-neutral-800 rounded-lg w-3/4" />
+                <div className="h-4 bg-neutral-100 dark:bg-neutral-700 rounded-lg w-1/2" />
+                <div className="h-4 bg-neutral-100 dark:bg-neutral-700 rounded-lg w-2/3" />
+                <div className="pt-3 mt-2 border-t border-neutral-100 dark:border-neutral-800 flex gap-2">
+                  <div className="flex-1 h-9 bg-neutral-200 dark:bg-neutral-800 rounded-lg" />
+                  <div className="w-9 h-9 bg-neutral-200 dark:bg-neutral-800 rounded-lg" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-neutral-50/50 dark:bg-neutral-950 p-6 space-y-8 max-w-[1600px] mx-auto animate-in fade-in duration-500">
@@ -149,11 +220,12 @@ export default function BookmarksPage() {
             const eventName = event.name || event.title || 'Untitled Event'
             const eventCategory = getCategoryFromEvent(event)
             const colors = CATEGORY_COLORS[eventCategory] || CATEGORY_COLORS['HCDC']
+            const isRemoving = bookmarkLoading.has(String(event.id))
 
             return (
               <div
                 key={event.id}
-                className="group relative bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 overflow-hidden hover:shadow-xl hover:shadow-red-500/10 transition-all duration-300 flex flex-col h-full cursor-pointer hover:-translate-y-1"
+                className={`group relative bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 overflow-hidden hover:shadow-xl hover:shadow-red-500/10 transition-all duration-300 flex flex-col h-full cursor-pointer hover:-translate-y-1 ${isRemoving ? 'opacity-60 scale-[0.98]' : ''}`}
                 onClick={() => router.push(`/participant/event/${event.id}`)}
               >
                 {/* Image */}
@@ -208,10 +280,18 @@ export default function BookmarksPage() {
                     <Button
                       variant="outline"
                       size="icon"
+                      disabled={isRemoving}
                       className="shrink-0 border-neutral-200 dark:border-neutral-800 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400 h-9 w-9"
                       onClick={() => toggleBookmark(event.id)}
                     >
-                      <Bookmark className="w-4 h-4 fill-red-500 text-red-500" />
+                      {isRemoving ? (
+                        <svg className="w-4 h-4 animate-spin text-red-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                        </svg>
+                      ) : (
+                        <Bookmark className="w-4 h-4 fill-red-500 text-red-500" />
+                      )}
                     </Button>
                   </div>
                 </div>
