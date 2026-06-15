@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { AdminSidebar } from '@/components/admin-sidebar'
 import { AdminTopbar } from '@/components/admin-topbar'
 import { CrosscertLogo } from '@/components/crosscert-logo'
@@ -13,10 +13,11 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
-  const [mounted, setMounted] = useState(false)
+  const checked = useRef(false)
 
   useEffect(() => {
-    setMounted(true)
+    if (checked.current) return
+    checked.current = true
     const userRole = localStorage.getItem('userRole')
     if (userRole !== 'admin') {
       router.push('/auth/signin')
@@ -25,8 +26,7 @@ export default function AdminLayout({
     ensureCsrfToken().catch(() => {})
   }, [router])
 
-  if (!mounted) return null
-
+  // Render shell immediately — no blank flash
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       <AdminSidebar />
